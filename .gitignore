@@ -45,3 +45,4 @@ octave-workspace
 # Debug files
 *.dSYM/
 *.su
+/.project
