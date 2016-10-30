@@ -6,7 +6,6 @@ function adjust_options()
     % Only sparse matrices with double values are supported!
     X = sprand(1000, 500, 1/10);
 
-    %    KEY_TYPE kmeans_algorithm_id;   /**< id specifies which k-means algorithm to use */   
     opts.seed = 5;                  % change starting position of clustering
     opts.algorithm = 'yinyang';     % change the algorithm to yinyang
     opts.init = 'random';           % use random samples as initialization
