@@ -1,0 +1,6 @@
+/fcl.egg-info/
+/build/
+/dist/
+/kmeans.pyc
+**.c
+**.h
