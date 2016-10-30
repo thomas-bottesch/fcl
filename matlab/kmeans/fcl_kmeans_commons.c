@@ -263,7 +263,7 @@ fail_load_scalar_dataset:
 
         // check if input is sparse
         if(!mxIsDouble(input_data) || !mxIsSparse(input_data)) {
-            mexPrintf("Wrong input. Only sparse matrices with double precision values are supported!. \n");
+            mexPrintf("Wrong input. Only sparse matrices with double precision values are supported!. Try sparse(X).\n");
             return 0;
         }
 

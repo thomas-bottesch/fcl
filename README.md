@@ -12,7 +12,7 @@ The machine learning core is programmed in C (C99) but fcl can be used from vari
 fcl was started as part of a phd thesis supported by:
 
 * [Avira Operations GmbH & Co. KG](https://www.avira.com)
-* [Institute of Neural Information Processing - Ulm University](https://www.uni-ulm.de/en/in/institute-of-neural-information-processing/). 
+* [Institute of Neural Information Processing - Ulm University](https://www.uni-ulm.de/en/in/institute-of-neural-information-processing/)
 
 
 # Get the code

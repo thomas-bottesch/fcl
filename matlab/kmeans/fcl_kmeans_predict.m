@@ -1,18 +1,14 @@
-% Fast k-means clustering library.
+%  fcl kmeans predict
 % 
-%  Usage: C = fcl_kmeans_fit(X, k, opts) 
+%  [ IDX ]       = fcl_kmeans_predict(C, X, opts) returns for every point the closest cluster center index.
+%
+%  [ IDX, SUMD ] = fcl_kmeans_predict(C, X, opts) returns the sum of cluster distances for every cluster center as a 1 by k array.
 % 
 %  Input:
+%       C:      matrix of cluster center as sparse input (num columns, dim rows)
 %       X:      sparse input data (num columns, dim rows)
-%       k:      the desired number of clusters
 %       opts:   (Optional) struct containing the following additional parameters:
 %
-%               opts.algorithm: Choices are "kmeans", "kmeans_optimized" (default), "yinyang", 
-%                               "fast_yinyang", "minibatch_kmeans", "minibatch_kmeans_optimized"
-%               opts.init:      Initialization strategy. Choices are "random" (default) and "kmeans++".              
-%               opts.seed:      Seed when using random initializations. Default is 1.
-%               opts.tol:       Tolerance (stopping criterion). Default is 1e-6.
-%               opts.max_iter:  The iteration limit. Default is 1000.    
 %               opts.silent:    Suppress console output. Default is false.
 %               opts.no_cores:  Specify how many cores to use. Default = all.
 %
