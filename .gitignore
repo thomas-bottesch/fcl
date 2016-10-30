@@ -26,6 +26,7 @@
 *.so
 *.so.*
 *.dylib
+*.pyc
 
 # ignore octave workspaces
 octave-workspace
@@ -45,4 +46,7 @@ octave-workspace
 # Debug files
 *.dSYM/
 *.su
+
+# eclipse
 /.project
+/.pydevproject

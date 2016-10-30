@@ -8,7 +8,7 @@ from fcl import kmeans
 from fcl.datasets import load_sector_dataset, load_usps_dataset
 from fcl.matrix.csr_matrix import get_csr_matrix_from_object 
 
-def do_evaluations(dataset_path):
+def do_evaluations(dataset_path, dataset_name):
   
   # Load dataset directly into csr matrix format this way it only needs to be converted once
   data_as_csrmatrix = get_csr_matrix_from_object(dataset_path)
@@ -31,9 +31,9 @@ def do_evaluations(dataset_path):
       algorithm_results[algorithm][no_clusters] = km.get_tracked_params()   
     
   # plot the results
-  plot_overall_duration(algorithm_results)
+  plot_overall_duration(algorithm_results, dataset_name)
 
-def plot_overall_duration(algorithm_results):
+def plot_overall_duration(algorithm_results, dataset_name):
   # create subplot showing the overall duration of the algorithm
 
   fig = plt.figure()
@@ -82,7 +82,7 @@ def plot_overall_duration(algorithm_results):
   ax.set_xticklabels(no_clusters_list, fontdict=None, minor=False)
   ax.set_ylabel('time / s')
   ax.set_xlabel('number of clusters')
-  ax.set_title("Overall duration")
+  ax.set_title("Overall duration of various algorithms for dataset %s"%dataset_name)
 
   lgd = ax.legend(legend_rects, sorted_algorithms, loc='center left', bbox_to_anchor=(1, 0.5))
 
@@ -93,6 +93,4 @@ def plot_overall_duration(algorithm_results):
 
 if __name__ == "__main__":
   ds_folder = abspath(join(dirname( __file__ ), os.pardir, os.pardir, os.pardir, 'datasets'))
-  do_evaluations(load_sector_dataset(ds_folder))
-  
-  
+  do_evaluations(load_sector_dataset(ds_folder), 'sector')
