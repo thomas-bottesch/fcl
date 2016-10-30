@@ -5,10 +5,9 @@ fcl - machine learning library
 fcl is a machine learning library which is open source and commercially usable - MIT license (see LICENSE file).
 The machine learning core is programmed in C (C99) but fcl can be used from various languages:
     
-..* Matlab
-..* Octave
-..* Python2.x & 3.x (numpy and scipy matrices are supported)
-..* Linux shell
+* Matlab / Octave
+* Python 2.x & 3.x (numpy and scipy matrices are supported)
+* Command line interface
 
 fcl was started as part of a phd thesis supported by [Avira Operations GmbH & Co. KG](https://www.avira.com)
 and [Institute of Neural Information Processing - Ulm University](https://www.uni-ulm.de/en/in/institute-of-neural-information-processing/). 
