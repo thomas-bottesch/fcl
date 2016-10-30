@@ -3,17 +3,16 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "algorithms/kmeans/kmeans_control.h"
-#include "utils/argtable3.h"
-#include "utils/matrix/csr_matrix/csr_load_matrix.h"
-#include "utils/matrix/csr_matrix/csr_store_matrix.h"
-#include "utils/matrix/csr_matrix/csr_assign.h"
-#include "utils/fcl_time.h"
-#include "utils/fcl_file.h"
-#include "utils/fcl_string.h"
-#include "utils/fcl_random.h"
-#include "utils/fcl_logging.h"
-
+#include "../algorithms/kmeans/kmeans_control.h"
+#include "../utils/argtable3.h"
+#include "../utils/matrix/csr_matrix/csr_load_matrix.h"
+#include "../utils/matrix/csr_matrix/csr_store_matrix.h"
+#include "../utils/matrix/csr_matrix/csr_assign.h"
+#include "../utils/fcl_time.h"
+#include "../utils/fcl_file.h"
+#include "../utils/fcl_string.h"
+#include "../utils/fcl_random.h"
+#include "../utils/fcl_logging.h"
 
 #define SUBTASK_FIT 0
 #define SUBTASK_PREDICT 1
