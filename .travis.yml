@@ -1,0 +1,33 @@
+language: python
+sudo: required
+
+matrix:
+  include:
+  - os: linux
+    dist: trusty
+    python: '2.7'
+    env: INSTALL_OCTAVE=yes
+  - os: linux
+    dist: trusty
+    python: '2.7'
+    env: MAKE_CLI=yes
+  - os: linux
+    dist: trusty
+    python: '2.7'
+    env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
+  - os: linux
+    dist: trusty
+    python: '3.3'
+    env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
+  - os: linux
+    dist: trusty
+    python: '3.4'
+    env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
+  - os: linux
+    dist: trusty
+    python: '3.5'
+    env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
+install:
+- "./tools_build/travis/install.sh"
+script:
+- "./tools_build/travis/run.sh"
