@@ -14,7 +14,7 @@ if [ "x$INSTALL_OCTAVE" = "xyes" ]; then
 fi
 
 if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
-    apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev   # needed to get matplotlib to work
+    sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev   # needed to get matplotlib to work
     pip install -r python/requirements.txt
     pip install -r python/requirements_examples.txt
 fi
