@@ -5,16 +5,12 @@ matrix:
   include:
   - os: linux
     dist: trusty
-    python: '2.6'
+    python: '2.7'
     env: INSTALL_OCTAVE=yes
   - os: linux
     dist: trusty
-    python: '2.6'
+    python: '2.7'
     env: MAKE_CLI=yes
-  - os: linux
-    dist: trusty
-    python: '2.6'
-    env: INSTALL_PYTHON_REQUIREMENTS=yes
   - os: linux
     dist: trusty
     python: '2.7'
