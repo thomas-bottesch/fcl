@@ -1,6 +1,7 @@
 fcl - machine learning library
 ==============================
 
+[![Build Status](https://travis-ci.org/thomas-bottesch/fcl.svg?branch=master)](https://travis-ci.org/thomas-bottesch/fcl)
 
 fcl is a machine learning library which is open source and commercially usable - MIT license (see LICENSE file).
 The machine learning core is programmed in C (C99) but fcl can be used from various languages:
