@@ -1,6 +1,14 @@
 from __future__ import print_function
 import os
-import urllib
+
+try:
+  # Python 2
+  from urllib import urlretrieve
+except:
+  # Python 3
+  from urllib.request import urlretrieve
+  
+import traceback
 
 def load_dataset_from_github(path_to_save_to, dataset_filename):
   dataset_path = os.path.join(path_to_save_to, dataset_filename)
@@ -10,9 +18,10 @@ def load_dataset_from_github(path_to_save_to, dataset_filename):
   
   try:
     print("Downloading dataset to:", dataset_path)
-    urllib.urlretrieve("https://github.com/thomas-bottesch/fcl_datasets/blob/master/%s?raw=true"%dataset_filename, dataset_path)
+    urlretrieve("https://github.com/thomas-bottesch/fcl_datasets/blob/master/%s?raw=true"%dataset_filename, dataset_path)
   except:
     print("Error while downloading dataset: " + dataset_filename)
+    print(traceback.format_exc())
   
   return dataset_path
 
