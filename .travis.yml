@@ -1,4 +1,5 @@
 language: python
+
 cache: pip
 
 sudo: required
@@ -29,7 +30,9 @@ matrix:
     dist: trusty
     python: '3.5'
     env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
+
 install:
 - "./tools_build/travis/install.sh"
+
 script:
 - "./tools_build/travis/run.sh"
