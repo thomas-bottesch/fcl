@@ -51,7 +51,7 @@ Have a look at the available options
 # Python 2/3
 ----
 
-On Ubuntu/Debian install build essentials and the python dev packagein order to create python bindings with cython
+On Ubuntu/Debian install build essentials and the python dev package in order to create python bindings with cython
 
     sudo apt-get install build-essential (also python2.7-dev / python3.4-dev or whatever python version you use)
 
