@@ -1,5 +1,7 @@
 # Result of algorithm_speed_comparison.py
 
+![Comparison of algorithm speed comparison sklearn](https://github.com/thomas-bottesch/fcl/blob/master/examples/python/kmeans/plotting/plot_algorithm_speed_comparison_sklearn.png?raw=true "algorithm_speed_comparison_sklearn.py")
+
 ![Comparison of algorithm speeds](https://github.com/thomas-bottesch/fcl/blob/master/examples/python/kmeans/plotting/plot_algorithm_speed_comparison.png?raw=true "algorithm_speed_comparison.py")
 
 # Result of bv_annz_evaluation.py
