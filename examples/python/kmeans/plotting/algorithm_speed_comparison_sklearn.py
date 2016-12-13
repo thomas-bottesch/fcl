@@ -1,3 +1,10 @@
+# This example creates a comparison between k-means algorithms implementend in fcl
+# and the k-means algorithm implemented in scikit-learn.
+# The comparison contains optimized and unoptimized version of k-means.
+# All comparisons are done with sparse input data. In scikit-learn only the
+# traditional k-means algorithm is available for clustering while more sophisticated
+# algorithms like 'elkan' do not work yet with sparse data.
+
 from __future__ import print_function
 import fcl
 import os
@@ -24,30 +31,46 @@ def do_evaluations(dataset_path, dataset_name):
   # Convert data to numpy array
   data_as_numpy = data_as_csrmatrix.to_numpy()
   
-  # Convert data to a dense format 
-  data_as_numpy_dense = data_as_numpy.toarray()
+  # sklearn 
+  # - uses dense vectors to store the cluster centers. this makes the calculation of the distance between
+  #   sparse samples and dense clusters very fast. However if the input data has very large dimensions, storing
+  #   dense cluster centers gets very costly.
+  #
+  # fcl
+  # - uses sparse vectors everywhere. Calculating distances between a sparse center and a sparse sample is a lot more expensive
+  #   then using a dense center. However it is possible to cluster very high dimensional data into many clusters on a regular
+  #   while keeping the memory usage very low.
+  algorithm_results = {}
   
-  algorithm_results = {'fcl_kmeans_sparse': {}, 'sklearn_kmeans_sparse': {}, 'sklearn_kmeans_dense': {}}
+  # These values generate the official repository plot.
+  #algorithms = ["elkan", "kmeans_optimized", "yinyang", "fast_yinyang", "kmeans"]
+  #clusters = [10, 50, 100, 500, 1000]
   
+  # These values are used in order to allow the tests to be more efficient
+  algorithms = ["kmeans"]
   clusters = [2, 8]
+  
   for no_clusters in clusters:
-    print("evaluating: fcl kmeans (sparse matrix) with k=%d and dataset %s"%(no_clusters, dataset_name))
-    dur = timeit(kmeans.KMeans(n_jobs=1, no_clusters=no_clusters, algorithm='kmeans', init='random', seed = 1, verbose = False)
-           , data_as_csrmatrix)
-    algorithm_results['fcl_kmeans_sparse'][no_clusters] = dur
+    for algorithm in algorithms:
+      algorithm_name = "fcl_kmeans_" + algorithm
+      if not algorithm_name in algorithm_results:
+        algorithm_results[algorithm_name] = {}
+      print("evaluating: fcl kmeans (%s) with k=%d and dataset %s"%(algorithm, no_clusters, dataset_name))
+      dur = timeit(kmeans.KMeans(n_jobs=1, no_clusters=no_clusters, algorithm=algorithm, init='random', seed = 1, verbose = False)
+             , data_as_csrmatrix)
+      algorithm_results[algorithm_name][no_clusters] = dur
+    
+    algorithm_name = "sklearn_kmeans"
+    if not algorithm_name in algorithm_results:
+      algorithm_results[algorithm_name] = {}
     
     # Evaluating the speed of scikit-learn when clustering a sparse matrix
     print("evaluating: sklearn kmeans (sparse matrix) with k=%d and dataset %s"%(no_clusters, dataset_name))
     dur = timeit(sklearn.cluster.KMeans(n_init = 1, n_jobs=1, n_clusters=no_clusters, algorithm='full', init='random', random_state=1)
                , data_as_numpy)
-    algorithm_results['sklearn_kmeans_sparse'][no_clusters] = dur
+    algorithm_results[algorithm_name][no_clusters] = dur
     
-    # Evaluating the speed of scikit-learn when clustering a dense matrix
-    print("evaluating: sklearn kmeans (dense matrix) with k=%d and dataset %s"%(no_clusters, dataset_name))
-    dur = timeit(sklearn.cluster.KMeans(n_init = 1, n_jobs=1, n_clusters=no_clusters, algorithm='full', init='random', random_state=1)
-               , data_as_numpy_dense)
-    algorithm_results['sklearn_kmeans_dense'][no_clusters] = dur
-    
+
   # plot the results
   plot_sklearn_comparison(algorithm_results, dataset_name)
 
@@ -107,4 +130,4 @@ def plot_sklearn_comparison(algorithm_results, dataset_name):
 
 if __name__ == "__main__":
   ds_folder = abspath(join(dirname( __file__ ), os.pardir, os.pardir, os.pardir, 'datasets'))
-  do_evaluations(load_usps_dataset(ds_folder), 'usps')
+  do_evaluations(load_sector_dataset(ds_folder), 'sector')
