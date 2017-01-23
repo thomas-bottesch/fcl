@@ -23,6 +23,7 @@ kmeans_init_function KMEANS_INIT_FUNCTIONS[NO_KMEANS_INITS] \
                                       = {initialize_kmeans_random, initialize_kmeans_pp};
 
 void get_kmeanspp_assigns(struct csr_matrix *mtrx
+                          , struct csr_matrix *blockvectors_mtrx
                           , VALUE_TYPE *sparse_vector_lengths
                           , uint64_t no_clusters
                           , uint64_t *cluster_counts
@@ -30,6 +31,7 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
                           , VALUE_TYPE *cluster_distances
                           , uint32_t* seed
                           , uint32_t verbose
+                          , struct cdict* tr
                           , uint32_t* stop);
 
 void free_general_context(struct general_kmeans_context* ctx
@@ -72,8 +74,24 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
     KEY_TYPE *keys;
     VALUE_TYPE *values;
     uint64_t nnz;
+    uint64_t block_vectors_dim;         /* size of block vectors */
+    VALUE_TYPE desired_bv_annz;         /* desired size of the block vectors */
+    struct csr_matrix block_vectors_samples;  /* block vector matrix of samples */
+
+    block_vectors_samples.sample_count = 0;
+    desired_bv_annz = d_get_subfloat_default(&(prms->tr)
+                                            , "additional_params", "kmpp_bv_annz", 0);
+
+    if (desired_bv_annz > 0) {
+        if (prms->verbose) LOG_INFO("kmeans++ block vectors activated with annz: %.3f", desired_bv_annz);
+        determine_block_vectors_for_matrix(ctx->samples
+                                           , desired_bv_annz
+                                           , &block_vectors_samples
+                                           , &block_vectors_dim);
+    }
 
     get_kmeanspp_assigns(ctx->samples
+                         , &block_vectors_samples
                          , ctx->vector_lengths_samples
                          , prms->no_clusters
                          , ctx->cluster_counts
@@ -81,7 +99,12 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
                          , ctx->cluster_distances
                          , &(prms->seed)
                          , prms->verbose
+                         , prms->tr
                          , &(prms->stop));
+
+    if (desired_bv_annz > 0) {
+        free_csr_matrix(&block_vectors_samples);
+    }
 
     for (i = 0; i < ctx->samples->sample_count; i++) {
         keys = ctx->samples->keys + ctx->samples->pointers[i];
@@ -102,6 +125,7 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
 }
 
 void get_kmeanspp_assigns(struct csr_matrix *mtrx
+                          , struct csr_matrix *blockvectors_mtrx
                           , VALUE_TYPE *sparse_vector_lengths
                           , uint64_t no_clusters
                           , uint64_t *cluster_counts
@@ -109,6 +133,7 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
                           , VALUE_TYPE *cluster_distances
                           , uint32_t* seed
                           , uint32_t verbose
+                          , struct cdict* tr
                           , uint32_t* stop) {
 
     uint64_t  no_clusters_so_far, i, j;
@@ -156,6 +181,21 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
             if (omp_get_thread_num() == 0) check_signals(stop);
 
             if (!(*stop)) {
+                if (blockvectors_mtrx->sample_count > 0) {
+                    dist = euclid_vector(blockvectors_mtrx->keys + blockvectors_mtrx->pointers[cluster_id]
+                                         , blockvectors_mtrx->values + blockvectors_mtrx->pointers[cluster_id]
+                                         , blockvectors_mtrx->pointers[cluster_id + 1] - blockvectors_mtrx->pointers[cluster_id]
+                                         , blockvectors_mtrx->keys + blockvectors_mtrx->pointers[sample_id]
+                                         , blockvectors_mtrx->values + blockvectors_mtrx->pointers[sample_id]
+                                         , blockvectors_mtrx->pointers[sample_id + 1] - blockvectors_mtrx->pointers[sample_id]
+                                         , sparse_vector_lengths[cluster_id]
+                                         , sparse_vector_lengths[sample_id]);
+
+                    if (dist >= cluster_distances[sample_id]) {
+                        goto end;
+                    }
+                }
+
                 dist = euclid_vector(mtrx->keys + mtrx->pointers[cluster_id]
                                             , mtrx->values + mtrx->pointers[cluster_id]
                                             , mtrx->pointers[cluster_id + 1] - mtrx->pointers[cluster_id]
@@ -165,9 +205,8 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
                                             , sparse_vector_lengths[cluster_id]
                                             , sparse_vector_lengths[sample_id]);
 
-                calcs_needed += 1;
-
                 #pragma omp critical
+                calcs_needed += 1;
                 if (dist < cluster_distances[sample_id]) {
                     if (no_clusters_so_far != 1) {
                         cluster_counts[cluster_assignments[sample_id]] -= 1;
@@ -178,6 +217,8 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
                     cluster_assignments[sample_id] = no_clusters_so_far - 1;
                     cluster_counts[cluster_assignments[sample_id]] += 1;
                 }
+
+                end:;
             }
         }
 
@@ -208,6 +249,15 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
 
     if (verbose) LOG_INFO("kmeans++ finished with %" PRINTF_INT64_MODIFIER "u clusters", no_clusters_so_far);
     if (verbose) LOG_INFO("kmeans++ calcs_needed %" PRINTF_INT64_MODIFIER "u/%" PRINTF_INT64_MODIFIER "u", calcs_needed, mtrx->sample_count * no_clusters);
+
+    d_add_subint(&tr, "kmeans++", "block_vectors_enabled", blockvectors_mtrx->sample_count > 0);
+    if (blockvectors_mtrx->sample_count > 0) {
+        d_add_subint(&tr, "kmeans++", "block_vectors_dim", blockvectors_mtrx->dim);
+        d_add_subint(&tr, "kmeans++", "block_vectors_annz"
+                     , blockvectors_mtrx->pointers[blockvectors_mtrx->sample_count] / blockvectors_mtrx->sample_count);
+    }
+    d_add_subint(&tr, "kmeans++", "calculations_needed", calcs_needed);
+    d_add_subint(&tr, "kmeans++", "calculations_needed_naive", mtrx->sample_count * no_clusters);
 
     free(clusters);
     free(distances_cluster_new_cluster);
@@ -325,6 +375,12 @@ void post_process_iteration(struct general_kmeans_context* ctx, struct kmeans_pa
 }
 
 void print_iteration_summary(struct general_kmeans_context* ctx, struct kmeans_params *prms, uint32_t iteration) {
+    size_t hash_overhead;
+    size_t clusters_nnz;
+    size_t clusters_memory_consumption;
+    VALUE_TYPE relative_dense_memory_consumption;
+    int j;
+
     if (prms->verbose) LOG_INFO("Iteration %" PRINTF_INT32_MODIFIER "u wcssd %f change: %" PRINTF_INT64_MODIFIER "u clust: %" PRINTF_INT64_MODIFIER "u d:%" PRINTF_INT64_MODIFIER "u"
             , iteration
             , ctx->wcssd
@@ -336,10 +392,33 @@ void print_iteration_summary(struct general_kmeans_context* ctx, struct kmeans_p
                           , (int32_t) (ctx->duration_all_calcs / 1000)
                           , (int32_t) (ctx->duration_update_clusters / 1000)
                           , get_diff_in_microseconds(ctx->tm_start));
+
+
+    hash_overhead = 0;
+    clusters_nnz = 0;
+    for (j = 0; j < ctx->no_clusters; j++) {
+        clusters_nnz += HASH_COUNT(ctx->clusters_raw[j]);
+        hash_overhead += ((HASH_COUNT(ctx->clusters_raw[j]) * sizeof(struct keyvaluecount_hash))
+                           +  HASH_OVERHEAD(hh, ctx->clusters_raw[j]));
+    }
+
+    clusters_memory_consumption = hash_overhead
+                                  + (clusters_nnz * (sizeof(KEY_TYPE) + sizeof(VALUE_TYPE)));
+
+    /* this determines how much memory the clusters use up compared to the case when
+     * the clusters would have been stored dense.
+     */
+    relative_dense_memory_consumption = ((VALUE_TYPE) 100 * clusters_memory_consumption
+                                        / (ctx->samples->dim * ctx->no_clusters * sizeof(VALUE_TYPE)));
+
     d_add_flist(&(prms->tr), "iteration_wcssd", ctx->wcssd);
     d_add_ilist(&(prms->tr), "iteration_changes", ctx->no_changes);
     d_add_ilist(&(prms->tr), "iteration_remaining_clusters"
                            , get_nnz_uint64_array(ctx->cluster_counts, ctx->no_clusters));
+    d_add_ilist(&(prms->tr), "iteration_clusters_mem_consumption", clusters_memory_consumption);
+    d_add_flist(&(prms->tr), "iteration_clusters_mem_consumption_relative_dense", relative_dense_memory_consumption);
+    d_add_ilist(&(prms->tr), "iteration_clusters_nnz", clusters_nnz);
+    d_add_ilist(&(prms->tr), "iteration_clusters_sparsity", (clusters_nnz * 100) / (ctx->samples->dim * ctx->no_clusters));
     d_add_ilist(&(prms->tr), "iteration_full_distance_calcs", ctx->done_calculations);
     d_add_flist(&(prms->tr), "iteration_durations_calcs", ((VALUE_TYPE) ctx->duration_all_calcs) / 1000.0);
     d_add_flist(&(prms->tr), "iteration_durations_update_clusters", ((VALUE_TYPE) ctx->duration_update_clusters) / 1000.0);
@@ -478,6 +557,7 @@ void initialize_general_context(struct kmeans_params *prms
     d_add_float(&(prms->tr), "initial_wcssd", ctx->old_wcssd);
     d_add_int(&(prms->tr), "input_samples", ctx->samples->sample_count);
     d_add_int(&(prms->tr), "input_dimension", ctx->samples->dim);
+    d_add_int(&(prms->tr), "input_annz", ctx->samples->pointers[ctx->samples->sample_count] / ctx->samples->sample_count);
 
 }
 

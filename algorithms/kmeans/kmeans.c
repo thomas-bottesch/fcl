@@ -40,10 +40,10 @@ struct csr_matrix* kmeans_optimized(struct csr_matrix* samples, struct kmeans_pa
         initialize_csr_matrix_zero(&block_vectors_samples);
 
         if (prms->kmeans_algorithm_id == ALGORITHM_KMEANS_OPTIMIZED) {
-        /* search for a suitable size of the block vectors for the input samples and create them */
-        search_samples_block_vectors(prms, ctx.samples, desired_bv_annz
-                                     , &block_vectors_samples
-                                     , &block_vectors_dim);
+            /* search for a suitable size of the block vectors for the input samples and create them */
+            search_samples_block_vectors(prms, ctx.samples, desired_bv_annz
+                                         , &block_vectors_samples
+                                         , &block_vectors_dim);
         }
 
         if (prms->kmeans_algorithm_id == ALGORITHM_KMEANS_OPTIMIZED_ONDEMAND) {
