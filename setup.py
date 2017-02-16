@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from distutils.extension import Extension
 from Cython.Build import cythonize
 import platform
@@ -6,18 +6,32 @@ from distutils import sysconfig
 import shutil
 import os
 from distutils.command.clean import clean as BaseClean
-import fcl
+import sys
 
 
 if platform.system() == 'Linux':
     ldshared = sysconfig.get_config_var('LDSHARED')
     sysconfig._config_vars['LDSHARED'] = ldshared.replace(' -g ', ' ')
 
+def walk_up_folder(path, depth=1):
+    _cur_depth = 1        
+    while _cur_depth < depth:
+        path = os.path.dirname(path)
+        _cur_depth += 1
+    return path   
+
+base_library_path = walk_up_folder(os.path.realpath(__file__), 2)
+base_path = os.path.join(base_library_path, 'python')
+print base_path
+sys.path.insert(0, base_path)
+
+import fcl
+
 class CleanClass(BaseClean):
     def run(self):
         BaseClean.run(self)
         is_not_sdist = not os.path.exists(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'PKG-INFO'))
-        for path, dirs, names in os.walk('fcl'):
+        for path, dirs, names in os.walk(os.path.join(base_library_path, 'fcl')):
             for fname in names:
                 to_delete = [".pyc", ".pyd", ".dll", ".so"]
                 
@@ -38,17 +52,6 @@ class CleanClass(BaseClean):
         if os.path.exists('build'):
             shutil.rmtree('build')
 
-
-
-def walk_up_folder(path, depth=1):
-    _cur_depth = 1        
-    while _cur_depth < depth:
-        path = os.path.dirname(path)
-        _cur_depth += 1
-    return path   
-
-base_path = walk_up_folder(os.path.realpath(__file__), 2)
-base_library_path = walk_up_folder(base_path, 2)
 algorithms_path = os.path.join(base_library_path, 'algorithms')
 utils_path = os.path.join(base_library_path, 'utils')
 
@@ -131,6 +134,7 @@ setup(
                   , include_dirs=['.', base_library_path]
                   , extra_link_args=['-fopenmp'])
     ]),
-  packages=['fcl'],
+  packages=["fcl"],
+  package_dir={'':'python'},
   cmdclass={'clean': CleanClass},
 )
