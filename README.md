@@ -57,8 +57,7 @@ On Ubuntu/Debian install build essentials and the python dev package in order to
 
 Install python requirements to be able to create the python version
 
-    cd python
-    pip install -r requirements.txt
+    pip install -r python/requirements.txt
     
 Build and install the fcl python version
 
@@ -66,7 +65,7 @@ Build and install the fcl python version
 
 Install packages required to run all the examples e.g. numpy, scipy and matplotlib (optional)
 
-    pip install -r requirements_examples.txt
+    pip install -r python/requirements_examples.txt
     
 Use the library (this example needs ./examples/datasets/get_datasets.sh to be executed first!)
     
