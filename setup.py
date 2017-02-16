@@ -22,7 +22,6 @@ def walk_up_folder(path, depth=1):
 
 base_library_path = walk_up_folder(os.path.realpath(__file__), 2)
 base_path = os.path.join(base_library_path, 'python')
-print base_path
 sys.path.insert(0, base_path)
 
 import fcl
