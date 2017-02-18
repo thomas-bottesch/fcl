@@ -28,10 +28,6 @@ matrix:
     dist: trusty
     python: '3.5'
     env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
-  - os: linux
-    dist: trusty
-    python: '3.6'
-    env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
 
 install:
 - ./tools_build/travis/install.sh
