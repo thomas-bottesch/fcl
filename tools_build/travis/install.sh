@@ -16,7 +16,6 @@ fi
 if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
     sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev   # needed to get matplotlib to work
     pip install --upgrade pip
-    pip install -r python/requirements.txt
     pip install -r python/requirements_examples.txt
 fi
 

@@ -22,7 +22,7 @@ if [ "x$INSTALL_OCTAVE" = "xyes" ]; then
 fi
 
 if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
-    python setup.py develop
+    python setup.py install
     
     # make sure the python examples work
     for BASE_FOLDER in examples/python/kmeans/basic/ examples/python/kmeans/plotting/

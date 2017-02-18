@@ -1,0 +1,4 @@
+recursive-include algorithms *.h
+recursive-include utils *.h
+recursive-include python *.pxd
+recursive-include python *.pxi
