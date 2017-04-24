@@ -110,10 +110,10 @@ struct csr_matrix* minibatch_kmeans_optimized(struct csr_matrix* samples
             bv.keys = NULL;
             bv.values = NULL;
 
-            if (omp_get_thread_num() == 0) check_signals(&(prms->stop));
-
             if (!prms->stop && chosen_sample_map[j]) {
                 sample_id = j;
+
+                if (omp_get_thread_num() == 0) check_signals(&(prms->stop));
 
                 for (cluster_id = 0; cluster_id < ctx.no_clusters; cluster_id++) {
                     /* iterate over all cluster centers */
