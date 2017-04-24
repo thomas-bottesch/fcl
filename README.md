@@ -3,6 +3,8 @@ fcl - machine learning library
 
 [![Build Status](https://travis-ci.org/thomas-bottesch/fcl.svg?branch=master)](https://travis-ci.org/thomas-bottesch/fcl)
 
+[![Pypi](https://badge.fury.io/py/fcl.svg)](https://badge.fury.io/py/fcl)
+
 fcl is a machine learning library which is open source and commercially usable - MIT license (see LICENSE file).
 The machine learning core is programmed in C (C99) but fcl can be used from various languages:
     
@@ -55,18 +57,13 @@ On Ubuntu/Debian install build essentials and the python dev package in order to
 
     sudo apt-get install build-essential (also python2.7-dev / python3.4-dev or whatever python version you use)
 
-Install python requirements to be able to create the python version
+Install via pip:
 
-    cd python
-    pip install -r requirements.txt
-    
-Build and install the fcl python version
-
-    python setup.py install
+    pip install fcl
 
 Install packages required to run all the examples e.g. numpy, scipy and matplotlib (optional)
 
-    pip install -r requirements_examples.txt
+    pip install -r python/requirements_examples.txt
     
 Use the library (this example needs ./examples/datasets/get_datasets.sh to be executed first!)
     
