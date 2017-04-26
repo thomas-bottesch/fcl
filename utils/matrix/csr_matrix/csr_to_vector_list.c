@@ -26,6 +26,111 @@ void create_vector_list_random(struct csr_matrix *mtrx
     }
 }
 
+void update_dot_products(struct sparse_vector *input_vectors,
+                         uint64_t no_vectors,
+                         struct csr_matrix *mtrx,
+                         uint32_t* vector_not_changed,
+                         struct sparse_vector *result) {
+    /* some of the input_vectors changed and the result of the dot product
+     * of input_vectors with mtrx needs to be recalculated.
+     */
+    uint64_t i;
+
+    #pragma omp parallel for schedule(dynamic, 1000)
+    for (i = 0; i < no_vectors; i++) {
+        if (vector_not_changed[i]) continue;
+
+        free_null(result[i].keys);
+        free_null(result[i].values);
+
+        vector_matrix_dot(input_vectors[i].keys,
+                          input_vectors[i].values,
+                          input_vectors[i].nnz,
+                          mtrx,
+                          result + i);
+    }
+}
+
+void vector_matrix_dot(KEY_TYPE* keys,
+                       VALUE_TYPE* values,
+                       uint64_t nnz,
+                       struct csr_matrix *mtrx,
+                       struct sparse_vector *result) {
+
+    VALUE_TYPE *value_result_padded = (VALUE_TYPE*) calloc(mtrx->sample_count, sizeof(VALUE_TYPE));
+    KEY_TYPE *key_result_padded = (KEY_TYPE*) calloc(mtrx->sample_count, sizeof(KEY_TYPE));
+    uint64_t nnz_res, j;
+
+    nnz_res = 0;
+    for (j = 0; j < mtrx->sample_count; j++) {
+        VALUE_TYPE dot_result;
+        dot_result = dot(keys,
+                         values,
+                         nnz,
+                         mtrx->keys + mtrx->pointers[j],
+                         mtrx->values + mtrx->pointers[j],
+                         mtrx->pointers[j + 1] - mtrx->pointers[j]);
+
+        if (dot_result != 0) {
+            value_result_padded[nnz_res] = dot_result;
+            key_result_padded[nnz_res] = j;
+            nnz_res += 1;
+        }
+    }
+
+    result->nnz = nnz_res;
+    result->keys = (KEY_TYPE*) calloc(nnz_res, sizeof(KEY_TYPE));
+    result->values = (VALUE_TYPE*) calloc(nnz_res, sizeof(VALUE_TYPE));
+    memcpy(result->keys,
+           key_result_padded,
+           result->nnz * sizeof(KEY_TYPE));
+    memcpy(result->values,
+           value_result_padded,
+           result->nnz * sizeof(VALUE_TYPE));
+    free(value_result_padded);
+    free(key_result_padded);
+}
+
+struct sparse_vector* matrix_dot(struct csr_matrix *mtrx1, struct csr_matrix *mtrx2) {
+    /* From a input matrix mtrx with shape MxN and a second matrix
+     * mtrx2 with shape LxN create a matrix with shape MxL.
+     */
+    struct sparse_vector *result =
+        (struct sparse_vector *) calloc(mtrx1->sample_count, sizeof(struct sparse_vector));
+
+    uint64_t i;
+    for (i = 0; i < mtrx1->sample_count; i++) {
+        vector_matrix_dot(mtrx1->keys + mtrx1->pointers[i],
+                          mtrx1->values + mtrx1->pointers[i],
+                          mtrx1->pointers[i + 1] - mtrx1->pointers[i],
+                          mtrx2,
+                          result + i);
+    }
+
+    return result;
+}
+
+struct sparse_vector* sparse_vectors_matrix_dot(struct sparse_vector* vectors,
+                                                uint64_t sample_count,
+                                                struct csr_matrix *mtrx) {
+    /* From a input matrix mtrx with shape MxN and a second matrix
+     * mtrx2 with shape LxN create a matrix with shape MxL.
+     */
+    struct sparse_vector *result =
+        (struct sparse_vector *) calloc(sample_count, sizeof(struct sparse_vector));
+
+    uint64_t i;
+    for (i = 0; i < sample_count; i++) {
+        vector_matrix_dot(vectors[i].keys,
+                          vectors[i].values,
+                          vectors[i].nnz,
+                          mtrx,
+                          result + i);
+    }
+
+    return result;
+}
+
 void create_block_vector_from_csr_matrix_vector(struct csr_matrix* mtrx
                                                , uint64_t vector_id
                                                , uint64_t keys_per_block

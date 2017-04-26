@@ -45,7 +45,7 @@ char* store_matrix_with_label_as_string(struct csr_matrix *mtrx, int32_t* labels
         keys = mtrx->keys + mtrx->pointers[vector_id];
         values = mtrx->values + mtrx->pointers[vector_id];
         nnz = mtrx->pointers[vector_id + 1] - mtrx->pointers[vector_id];
-        create_ascii_lsvm_with_label(keys, values, nnz, static_label, s);
+
         if (labels != NULL) {
             create_ascii_lsvm_with_label(keys, values, nnz, labels[vector_id], s);
         } else {

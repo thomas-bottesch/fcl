@@ -22,7 +22,7 @@ class KMeans():
                  , seed = random.randint(0, 2**31), iteration_limit = 1000, tol = 1e-6, n_jobs = -1
                  , remove_empty_clusters = False, verbose = False, result_type = 'auto', init="random"
                  , additional_params = {}, additional_info = {}
-                 , create_signal_handler = True):
+                 , create_signal_handler = True, external_vectors = None):
         
         if n_jobs <= 0:
           n_jobs = -1
@@ -92,7 +92,8 @@ class KMeans():
         kmeans_algorithm_id, _ = KMEANS_ALGO_INFO[algorithm]
         init_id, _ = KMEANS_INIT_INFO[init]
                
-        self.kmeans_c_obj = _kmeans_c(kmeans_algorithm_id, no_clusters, seed, iteration_limit, tol, n_jobs, init_id, self.remove_empty_clusters, verbose)
+        self.kmeans_c_obj = _kmeans_c(kmeans_algorithm_id, no_clusters, seed, iteration_limit, tol,
+                                      n_jobs, init_id, self.remove_empty_clusters, verbose)
         self.cluster_centers_ = None
         self.assign_c_obj = None
         
@@ -113,9 +114,9 @@ class KMeans():
     def get_tracked_params(self):
       return self.kmeans_c_obj.get_tracked_params()
     
-    def fit(self, X):
+    def fit(self, X, external_vectors = None):
         self.assign_c_obj = None
-        self.cluster_centers_ = self.kmeans_c_obj.fit(X, self.additional_params, self.additional_info)
+        self.cluster_centers_ = self.kmeans_c_obj.fit(X, self.additional_params, self.additional_info, external_vectors)
     
     def fit_predict(self, X, output_distance=False, output_numpy=None):
         self.fit(X)
