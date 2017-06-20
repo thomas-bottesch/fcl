@@ -107,8 +107,9 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
                         }
 
                         /* evaluate cauchy approximation. fast but not good */
-                        dist = lower_bound_euclid(vector_lengths_pca_clusters[cluster_id]
-                                                  , vector_lengths_pca_samples[sample_id]);
+                        dist = lower_bound_euclid(ctx.vector_lengths_clusters[cluster_id]
+                                                  , ctx.vector_lengths_samples[sample_id]);
+
 
                         if (dist >= ctx.cluster_distances[sample_id]) {
                             /* approximated distance is larger than current best distance. skip full distance calculation */
@@ -116,7 +117,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
                             goto end;
                         }
                         if (prms->kmeans_algorithm_id == ALGORITHM_PCA_KMEANS) {
-                            /* evaluate block vector approximation. */
+                            /* evaluate pca approximation. using precalculated feature map*/
 
                             dist = euclid_vector(pca_projection_samples[sample_id].keys
                                                  , pca_projection_samples[sample_id].values
@@ -128,6 +129,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
                                                  , vector_lengths_pca_clusters[cluster_id]);
 
                         } else {
+                            /* evaluate pca approximation. feature mapping is done on demand */
                             if (pca_projection.keys == NULL) {
                                 vector_matrix_dot(pca_projection_samples[sample_id].keys,
                                                   pca_projection_samples[sample_id].values,
