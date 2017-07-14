@@ -34,7 +34,7 @@ void calculate_cluster_distance_matrix(struct general_kmeans_context* ctx
 
         for(j = 0; j < ctx->no_clusters; j++) {
             if (i > j) {
-                if (!(ctx->clusters_not_changed[i] && ctx->clusters_not_changed[i])) {
+                if (!(ctx->clusters_not_changed[i] && ctx->clusters_not_changed[j])) {
                     /* if none of the two clusters moved, dont recalculate the distance */
                     dist_clusters_clusters[i][j] = euclid_vector( ctx->cluster_vectors[i].keys
                                                                 , ctx->cluster_vectors[i].values
