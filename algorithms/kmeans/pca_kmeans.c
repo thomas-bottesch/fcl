@@ -15,10 +15,8 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
 
     uint32_t i;
     uint64_t j;
-    uint64_t keys_per_block;
-    uint64_t block_vectors_dim;         /* size of block vectors */
-    struct sparse_vector* pca_projection_samples;  /* block vector matrix of samples */
-    struct sparse_vector* pca_projection_clusters; /* block vector matrix of clusters */
+    struct sparse_vector* pca_projection_samples;  /* projection matrix of samples */
+    struct sparse_vector* pca_projection_clusters; /* projection matrix of clusters */
     struct csr_matrix* resulting_clusters;
     uint32_t disable_optimizations;
 
@@ -33,8 +31,6 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
 
     initialize_general_context(prms, &ctx, samples);
 
-    block_vectors_dim = 0;
-    keys_per_block = 0;
     disable_optimizations = prms->ext_vects == NULL;
 
     if (!disable_optimizations) {
@@ -55,12 +51,12 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
     eligible_for_cluster_no_change_optimization = (uint32_t*) calloc(ctx.samples->sample_count, sizeof(uint32_t));
 
     for (i = 0; i < prms->iteration_limit && !ctx.converged && !prms->stop; i++) {
-        /* track how many blockvector calculations were made / saved */
+        /* track how many projection calculations were made / saved */
         uint64_t saved_calculations_pca, saved_calculations_prev_cluster;
-        uint64_t done_blockvector_calcs, saved_calculations_cauchy;
+        uint64_t done_pca_calcs, saved_calculations_cauchy;
 
         /* reset all calculation counters */
-        done_blockvector_calcs = 0;
+        done_pca_calcs = 0;
         saved_calculations_cauchy = 0;
         saved_calculations_prev_cluster = 0;
         saved_calculations_pca = 0;
@@ -94,7 +90,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
                     if (i != 0 && ctx.cluster_counts[cluster_id] == 0) continue;
 
                     if (!disable_optimizations) {
-                        /* kmeans_optimized */
+                        /* pca_kmeans */
 
                         /* we already know the distance to the cluster from last iteration */
                         if (cluster_id == ctx.previous_cluster_assignments[sample_id]) continue;
@@ -146,7 +142,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
                                                  , ctx.vector_lengths_clusters[cluster_id]);
                         }
 
-                        done_blockvector_calcs += 1;
+                        done_pca_calcs += 1;
 
                         if (dist >= ctx.cluster_distances[sample_id] && fabs(dist - ctx.cluster_distances[sample_id]) >= 1e-6) {
                             /* approximated distance is larger than current best distance. skip full distance calculation */
@@ -190,7 +186,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
                                 ctx.clusters_not_changed,
                                 pca_projection_clusters);
 
-            d_add_ilist(&(prms->tr), "iteration_pca_calcs", done_blockvector_calcs);
+            d_add_ilist(&(prms->tr), "iteration_pca_calcs", done_pca_calcs);
             d_add_ilist(&(prms->tr), "iteration_pca_calcs_success", saved_calculations_pca + saved_calculations_cauchy);
 
             #pragma omp parallel for
@@ -234,11 +230,11 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
 
         print_iteration_summary(&ctx, prms, i);
 
-        /* print block vector statistics */
+        /* print projection statistics */
         if (prms->verbose) LOG_INFO("PCA statistics c:%" PRINTF_INT64_MODIFIER "u/b:%" PRINTF_INT64_MODIFIER "u/db:%" PRINTF_INT64_MODIFIER "u/pc:%" PRINTF_INT64_MODIFIER "u"
                 , saved_calculations_cauchy
                 , saved_calculations_pca
-                , done_blockvector_calcs
+                , done_pca_calcs
                 , saved_calculations_prev_cluster);
     }
 

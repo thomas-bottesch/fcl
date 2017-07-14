@@ -53,6 +53,10 @@ cdef class _csr_matrix:
   def shape(self):
     return (self.mtrx.sample_count, self.mtrx.dim)
   
+  @property
+  def annz(self):
+    return self.mtrx.pointers[self.mtrx.sample_count] / float(self.mtrx.sample_count)
+  
   def __dealloc__(self):
     if self.mtrx is not NULL:
       free_csr_matrix(self.mtrx);
