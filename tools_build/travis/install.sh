@@ -14,9 +14,12 @@ if [ "x$INSTALL_OCTAVE" = "xyes" ]; then
 fi
 
 if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
+    python -c "import numpy; print numpy.__version__; print numpy.__file__;"
     sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev   # needed to get matplotlib to work
     pip install --upgrade pip
+    pip install -U numpy
     cat python/requirements_examples.txt | xargs -n 1 -L 1 pip install
+    python -c "import numpy; print numpy.__version__; print numpy.__file__;"
 fi
 
 if [ "x$MAKE_CLI" = "xyes" ]; then
