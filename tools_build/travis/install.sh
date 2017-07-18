@@ -17,7 +17,7 @@ if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
     python -c "import numpy; print numpy.__version__; print numpy.__file__;"
     sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev   # needed to get matplotlib to work
     pip install --upgrade pip
-    pip install -U numpy
+    pip uninstall numpy
     pip freeze
     cat python/requirements_examples.txt | xargs -n 1 -L 1 pip install
     python -c "import numpy; print numpy.__version__; print numpy.__file__;"
