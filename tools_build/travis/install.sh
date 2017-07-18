@@ -13,7 +13,7 @@ if [ "x$INSTALL_OCTAVE" = "xyes" ]; then
 fi
 
 if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
-    sudo apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran  # install blas libraries 
+    # sudo apt-get install libblas-dev liblapack-dev libatlas-base-dev gfortran  # install blas libraries 
     sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev         # needed to get matplotlib to work
     dpkg -l                                                                    # list all installed debian packages
     pip install --upgrade pip                                                  # upgrade pip (makes it possible to install .whl)
