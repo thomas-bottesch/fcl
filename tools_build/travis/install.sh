@@ -17,6 +17,7 @@ if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
     sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev         # needed to get matplotlib to work
     dpkg -l                                                                    # list all installed debian packages
     pip install --upgrade pip                                                  # upgrade pip (makes it possible to install .whl)
+    pip uninstall numpy
     pip freeze                                                                 # output the installed pip packages before req install
     cat python/requirements_examples.txt | xargs -n 1 -L 1 pip install         # install all requirements one by one
     pip freeze                                                                 # output the installed pip packages
