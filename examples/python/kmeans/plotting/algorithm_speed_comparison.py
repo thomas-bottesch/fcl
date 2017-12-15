@@ -3,10 +3,15 @@ import fcl
 import os
 import matplotlib
 import matplotlib.pyplot as plt
+import time
 from os.path import abspath, join, dirname
 from fcl import kmeans
 from fcl.datasets import load_sector_dataset, load_usps_dataset
-from fcl.matrix.csr_matrix import get_csr_matrix_from_object 
+from fcl.matrix.csr_matrix import get_csr_matrix_from_object, csr_matrix_to_libsvm_string
+from sklearn.decomposition import TruncatedSVD, PCA
+from scipy.sparse import csr_matrix
+from sklearn.datasets import dump_svmlight_file
+import numpy as np
 
 def do_evaluations(dataset_path, dataset_name):
   
@@ -14,21 +19,44 @@ def do_evaluations(dataset_path, dataset_name):
   data_as_csrmatrix = get_csr_matrix_from_object(dataset_path)
   
   print("Doing evaluations for dataset %s"%dataset_path)
+  
   algorithm_results = {'kmeans_optimized': {}
                        , 'yinyang': {}
                        , 'fast_yinyang': {}
                        , 'elkan': {}
+                       , 'pca_kmeans': {}
+                       , 'pca_elkan': {}
                        }
+  
+  additional_algo_data =  {}
+  if 'pca_kmeans' in algorithm_results or \
+     'pca_elkan' in algorithm_results:
+    p = TruncatedSVD(n_components = int(data_as_csrmatrix.annz * 0.1))
+    start = time.time()
+    p.fit(data_as_csrmatrix.to_numpy())
+    # convert to millis
+    fin = (time.time() - start) * 1000 
+    print(fin) 
+    pca_projection_csrmatrix = get_csr_matrix_from_object(p.components_)
+    for algorithm in algorithm_results:
+      if algorithm.startswith("pca_"):
+        additional_algo_data[algorithm] = {'data': pca_projection_csrmatrix, 'duration': fin}
+    
   clusters = [100, 250, 1000]
-  #clusters = [2, 3]
   
   # Do the evaluations for every algorithm and every no_clusters
   for algorithm in sorted(algorithm_results.keys()):
     for no_clusters in clusters:
       print("Executing k-means with algorithm: %s and k=%d"%(algorithm, no_clusters))
-      km = kmeans.KMeans(n_jobs=1, no_clusters=no_clusters, algorithm=algorithm, init='random', seed = 0, verbose = False)
-      km.fit(data_as_csrmatrix)
-      algorithm_results[algorithm][no_clusters] = km.get_tracked_params()   
+      km = kmeans.KMeans(n_jobs=1, no_clusters=no_clusters, algorithm=algorithm, init='random', seed = 0, verbose = True)
+      if algorithm not in additional_algo_data:
+        km.fit(data_as_csrmatrix)
+      else:
+        km.fit(data_as_csrmatrix, external_vectors = additional_algo_data[algorithm]['data'])
+        
+      algorithm_results[algorithm][no_clusters] = km.get_tracked_params()
+      if algorithm in additional_algo_data:
+        algorithm_results[algorithm][no_clusters]['duration_kmeans'] += additional_algo_data[algorithm]['duration']
     
   # plot the results
   plot_overall_duration(algorithm_results, dataset_name)

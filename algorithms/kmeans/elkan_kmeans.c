@@ -60,9 +60,14 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
     uint64_t i;
     uint64_t j;
     uint64_t k;
+    struct sparse_vector* pca_projection_samples;  /* projection matrix of samples */
+    struct sparse_vector* pca_projection_clusters; /* projection matrix of clusters */
     struct csr_matrix* resulting_clusters;
+    uint32_t disable_optimizations;
     struct general_kmeans_context ctx;
 
+    VALUE_TYPE* vector_lengths_pca_samples;
+    VALUE_TYPE* vector_lengths_pca_clusters;
 
     char* bound_needs_update;                           /* bool per sample, 1 if a bound needs updating (rx)*/
     VALUE_TYPE** lb_samples_clusters;                   /* lower bounds for every sample to every cluster (lxc) */
@@ -72,6 +77,25 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
     /* upper bounds from samples to clusters are stored in ctx.cluster_distances */
 
     initialize_general_context(prms, &ctx, samples);
+
+	disable_optimizations = (prms->ext_vects == NULL || prms->kmeans_algorithm_id == ALGORITHM_ELKAN_KMEANS);
+	
+	if (disable_optimizations && prms->kmeans_algorithm_id == ALGORITHM_PCA_ELKAN_KMEANS) {
+	    if (prms->verbose) LOG_ERROR("Unable to do pca_elkan_kmeans since no file_input_vectors was supplied. Doing regular elkan instead!");
+	}
+	
+	if (!disable_optimizations) {
+        /* create pca projections for the samples */
+        pca_projection_samples = matrix_dot(samples, prms->ext_vects);
+        calculate_vector_list_lengths(pca_projection_samples, samples->sample_count, &vector_lengths_pca_samples);
+
+        /* create pca projections for the clusters */
+        pca_projection_clusters = sparse_vectors_matrix_dot(ctx.cluster_vectors,
+                                                            ctx.no_clusters,
+                                                            prms->ext_vects);
+
+        vector_lengths_pca_clusters = NULL;
+    }
 
     /* initialization of the triangle inequality boundaries */
     bound_needs_update = (char*) calloc(ctx.samples->sample_count, sizeof(char));
@@ -95,10 +119,22 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
     distance_clustersold_to_clustersnew = (VALUE_TYPE*) calloc(ctx.no_clusters, sizeof(VALUE_TYPE));
 
     for (i = 0; i < prms->iteration_limit && !ctx.converged && !prms->stop; i++) {
+        /* track how many projection calculations were made / saved */
+        uint64_t saved_calculations_pca;
+        uint64_t done_pca_calcs;
 
         /* initialize data needed for the iteration */
         pre_process_iteration(&ctx);
 
+	    if (!disable_optimizations) {
+            /* reset all calculation counters */
+            done_pca_calcs = 0;
+            saved_calculations_pca = 0;
+
+            free(vector_lengths_pca_clusters);
+            calculate_vector_list_lengths(pca_projection_clusters, ctx.no_clusters, &vector_lengths_pca_clusters);
+		}
+		
         calculate_cluster_distance_matrix(&ctx, dist_clusters_clusters, min_dist_cluster_clusters, &(prms->stop));
 
         #pragma omp parallel for schedule(dynamic, 1000)
@@ -147,6 +183,26 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
                     if (ctx.cluster_distances[sample_id] > lb_samples_clusters[sample_id][cluster_id]
                         || ctx.cluster_distances[sample_id] > 0.5 * dist_clusters_clusters[ctx.cluster_assignments[sample_id]][cluster_id]) {
 
+						if (!disable_optimizations) {
+                            dist = euclid_vector(pca_projection_samples[sample_id].keys
+                                                 , pca_projection_samples[sample_id].values
+                                                 , pca_projection_samples[sample_id].nnz
+                                                 , pca_projection_clusters[cluster_id].keys
+                                                 , pca_projection_clusters[cluster_id].values
+                                                 , pca_projection_clusters[cluster_id].nnz
+                                                 , vector_lengths_pca_samples[sample_id]
+                                                 , vector_lengths_pca_clusters[cluster_id]);
+                            done_pca_calcs += 1;
+
+                            if (dist >= ctx.cluster_distances[sample_id]) {
+                                /* tighten lower bound (if possible) */
+                                if (dist > lb_samples_clusters[sample_id][cluster_id]) {
+                                    lb_samples_clusters[sample_id][cluster_id] = dist;
+                                }
+                                saved_calculations_pca += 1;
+                                continue;
+                            }
+						}
                         dist = euclid_vector_list(ctx.samples, sample_id, ctx.cluster_vectors, cluster_id
                                                     , ctx.vector_lengths_samples, ctx.vector_lengths_clusters);
                         ctx.done_calculations += 1;
@@ -180,6 +236,18 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
 
         switch_to_shifted_clusters(&ctx);
 
+		if (!disable_optimizations) {
+            /* update only projections for cluster that shifted */
+            update_dot_products(ctx.cluster_vectors,
+                                ctx.no_clusters,
+                                prms->ext_vects,
+                                ctx.clusters_not_changed,
+                                pca_projection_clusters);
+
+            d_add_ilist(&(prms->tr), "iteration_pca_calcs", done_pca_calcs);
+            d_add_ilist(&(prms->tr), "iteration_pca_calcs_success",
+                        saved_calculations_pca);
+		}
         #pragma omp parallel for private(j)
         for(k = 0; k < ctx.samples->sample_count; k++) {
             for(j = 0; j < ctx.no_clusters; j++) {
@@ -197,6 +265,13 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
         }
 
         print_iteration_summary(&ctx, prms, i);
+
+        if (!disable_optimizations) {
+            /* print projection statistics */
+            if (prms->verbose) LOG_INFO("PCA statistics b:%" PRINTF_INT64_MODIFIER "u/db:%" PRINTF_INT64_MODIFIER "u"
+                    , saved_calculations_pca
+                    , done_pca_calcs);
+        }
     }
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
@@ -205,6 +280,15 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
 
     /* cleanup all */
     free_general_context(&ctx, prms);
+    if (!disable_optimizations) {
+        free_vector_list(pca_projection_samples, samples->sample_count);
+        free(vector_lengths_pca_samples);
+        free(pca_projection_samples);
+
+        free_vector_list(pca_projection_clusters, ctx.no_clusters);
+        free(pca_projection_clusters);
+        free(vector_lengths_pca_clusters);
+	}
     free_null(bound_needs_update);
 
     for (i = 0; i < ctx.samples->sample_count; i++) {

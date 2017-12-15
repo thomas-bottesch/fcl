@@ -13,7 +13,8 @@ const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
 										  , "minibatch_kmeans"
 										  , "minibatch_kmeans_optimized"
 										  , "elkan"
-										  , "pca_kmeans"};
+										  , "pca_kmeans"
+										  , "pca_elkan"};
 
 const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "k-means optimized (with block vectors)"
@@ -24,7 +25,8 @@ const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "minibatch k-means"
 											  , "minibatch k-means (with block vectors)"
 											  , "triangle inequality optimized kmeans"
-											  , "k-means with pca lower bounds"};
+											  , "k-means with pca lower bounds"
+											  , "elkan k-means with pca lower bounds"};
 
 kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {kmeans_optimized
 														  , kmeans_optimized
@@ -35,7 +37,8 @@ kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {kmeans_
 														  , minibatch_kmeans_optimized
 														  , minibatch_kmeans_optimized
                                                           , elkan_kmeans
-                                                          , pca_kmeans};
+                                                          , pca_kmeans
+                                                          , elkan_kmeans};
 
 const char *KMEANS_INIT_NAMES[NO_KMEANS_INITS] = {"random"
                                   , "kmeans++"};
