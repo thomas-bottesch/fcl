@@ -182,7 +182,10 @@ void add_additional_info_param(struct kmeans_params* prms, char* key_str_pair) {
                  , str_value_as_str);
 }
 
-struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[], struct csr_matrix **input_dataset, char** path_model_file, char** path_tracking_params) {
+struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
+                                             struct csr_matrix **input_dataset,
+                                             char** path_model_file,
+                                             char** path_tracking_params) {
     struct arg_lit *help = arg_lit0(NULL,"help", "print this help and exit");
     struct arg_str *algorithm = arg_str0(NULL,"algorithm","<name>", "choose the k-means algorithm_id: (default = kmeans_optimized)");
     struct arg_int *cluster_count = arg_int0(NULL,"no_clusters","<k>", "number of clusters to generate (default=10)");
@@ -201,6 +204,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[], struct csr_
     struct arg_rem *add_info2 = arg_rem(NULL,                                            "e.g. --info dataset_name:webcrawl --info dataset_id:crwl_1");
     struct arg_rem *add_info3 = arg_rem(NULL,                                            "e.g. --info \"comment: Dataset was sampled for this Experiment\"");
     struct arg_file *tracking_param_file = arg_file0(NULL, "file_tracking_params", "<path>", "Output tracked params from algorithm to file in json format.");
+    struct arg_file *input_vectors_file = arg_file0(NULL, "file_input_vectors", "<path>", "Input vectors in libsvm format, e.g. for PCA vectors");
 
     struct arg_end *end = arg_end(20);
     struct kmeans_params prms;
@@ -248,6 +252,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[], struct csr_
     argtable[args_set] = silent; args_set++;
     argtable[args_set] = remove_empty; args_set++;
     argtable[args_set] = model_file; args_set++;
+    argtable[args_set] = input_vectors_file; args_set++;
     argtable[args_set] = add_params1; args_set++;
     argtable[args_set] = add_params2; args_set++;
     argtable[args_set] = add_info1; args_set++;
@@ -266,6 +271,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[], struct csr_
     iterations->ival[0] = 1000;
     tol->dval[0] = 1e-6;
     model_file->filename[0] = NULL;
+    input_vectors_file->filename[0] = NULL;
 
     progname = "fcl.exe";
 
@@ -304,6 +310,12 @@ usage_kmeans_params:
 
     if (!exists(input_dataset_file->filename[0])) {
         printf("Unable to open input_dataset_file: %s\n\n", input_dataset_file->filename[0]);
+        goto usage_kmeans_params;
+    }
+
+    if ((input_vectors_file->filename[0] != NULL)
+        && !exists(input_vectors_file->filename[0])) {
+        printf("Unable to open input_vectors_file: %s\n\n", input_vectors_file->filename[0]);
         goto usage_kmeans_params;
     }
 
@@ -393,6 +405,7 @@ usage_kmeans_params:
     prms.verbose = silent->count == 0;
     prms.remove_empty = remove_empty->count > 0;
     prms.stop = 0;
+    prms.ext_vects = NULL;
 
     if (model_file->filename[0] != NULL) {
         *path_model_file = dupstr(model_file->filename[0]);
@@ -413,13 +426,24 @@ usage_kmeans_params:
     						, KMEANS_INIT_NAMES[prms.init_id]
     						, no_cores->ival[0]);
 
+    labels = NULL;
     if (convert_libsvm_file_to_csr_matrix(input_dataset_file->filename[0], input_dataset, &labels)) {
         printf("unable to load input data / invalid libsvm or file does not exist!\n\n");
         goto usage_kmeans_params;
     }
+    free(labels);
+
+    if (input_vectors_file->filename[0] != NULL) {
+        labels = NULL;
+        if (convert_libsvm_file_to_csr_matrix(input_vectors_file->filename[0], &(prms.ext_vects), &labels)) {
+            printf("unable to load input vectors / invalid libsvm or file does not exist!\n\n");
+            goto usage_kmeans_params;
+        }
+        free(labels);
+    }
 
     if (prms.verbose) LOG_INFO("data loaded");
-    free(labels);
+
 
     if (no_cores->ival[0] > 0) {
         omp_set_num_threads(no_cores->ival[0]);
@@ -574,6 +598,11 @@ void kmeans_task(int argc, char *argv[]) {
         free_null(path_model_file);
         free_null(path_tracking_params);
         free_cdict(&(prms.tr));
+        if (prms.ext_vects != NULL) {
+            free_csr_matrix(prms.ext_vects);
+            free(prms.ext_vects);
+        }
+
     }
     if (subtask == SUBTASK_PREDICT) {
         /* predict */

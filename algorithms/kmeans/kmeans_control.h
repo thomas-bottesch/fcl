@@ -4,7 +4,7 @@
 #ifndef KMEANS_CONTROL_H
 #define KMEANS_CONTROL_H
 
-#define NO_KMEANS_ALGOS                      UINT32_C(9)
+#define NO_KMEANS_ALGOS                      UINT32_C(11)
 #define ALGORITHM_KMEANS                     UINT32_C(0)
 #define ALGORITHM_KMEANS_OPTIMIZED           UINT32_C(1)
 #define ALGORITHM_KMEANS_OPTIMIZED_ONDEMAND  UINT32_C(2)
@@ -14,6 +14,8 @@
 #define ALGORITHM_MINIBATCH_KMEANS           UINT32_C(6)
 #define ALGORITHM_MINIBATCH_KMEANS_OPTIMIZED UINT32_C(7)
 #define ALGORITHM_ELKAN_KMEANS               UINT32_C(8)
+#define ALGORITHM_PCA_KMEANS                 UINT32_C(9)
+#define ALGORITHM_PCA_ELKAN_KMEANS           UINT32_C(10)
 
 #define NO_KMEANS_INITS                      UINT32_C(2)
 #define KMEANS_INIT_RANDOM                   UINT32_C(0)
@@ -39,6 +41,7 @@ struct kmeans_params {
     uint32_t remove_empty;          /**< if true removes empty clusters before returning the resulting clusters  */
     uint32_t stop;                  /**< an immediate stop of the alforithm was requested  */
     struct cdict* tr;               /**< tracking data results. e.g. calculations per iteration */
+    struct csr_matrix* ext_vects;   /**< externally supplied vectors */
 };
 
 typedef struct csr_matrix* (*kmeans_algorithm_function) (struct csr_matrix* samples, struct kmeans_params *prms);

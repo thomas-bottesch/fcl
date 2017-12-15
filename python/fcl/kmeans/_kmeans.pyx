@@ -38,6 +38,7 @@ cdef extern from "algorithms/kmeans/kmeans_control.h":
       uint32_t remove_empty
       uint32_t stop
       cdict* tr
+      csr_matrix* ext_vects
 
 cdef get_kmeans_algo_info():
     info = {}
@@ -105,6 +106,7 @@ cdef class _kmeans_c:
         self.params.remove_empty = remove_empty
         self.params.stop = 0
         self.params.tr = NULL
+        self.params.ext_vects = NULL
     
     cdef _csr_matrix _fit_csr_matrix(self, _csr_matrix input_data):
       cdef csr_matrix *clusters     
@@ -121,10 +123,15 @@ cdef class _kmeans_c:
     def stop(self):
       self.params.stop = 1
 
-    def reset_params(self, additional_params, additional_info):
-        
+    cdef reset_params(self, additional_params, additional_info, _csr_matrix external_vectors):
+        cdef uint32_t is_numpy
         self.params.stop = 0
         free_cdict(&(self.params.tr))
+        
+        if external_vectors is None:
+          self.params.ext_vects = NULL
+        else:
+          self.params.ext_vects =  external_vectors.mtrx     
         
         for param_name, param_value in additional_params.items():
           if str(param_name) != bytes:
@@ -146,11 +153,16 @@ cdef class _kmeans_c:
              , b"info"
              , param_name
              , param_value)
+          
+          return external_vectors
 
-    def fit(self, X, additional_params, additional_info):
-        cdef uint32_t is_numpy
+    def fit(self, X, additional_params, additional_info, external_vectors=None):
+        cdef uint32_t is_numpy       
         
-        self.reset_params(additional_params, additional_info)
+        if external_vectors is not None:
+          external_vectors = convert_matrix_to_csr_matrix(external_vectors, &is_numpy)
+          
+        self.reset_params(additional_params, additional_info, external_vectors)
         _X = convert_matrix_to_csr_matrix(X, &is_numpy)
         cluster_centers = self._fit_csr_matrix(_X)
         
@@ -162,13 +174,16 @@ cdef class _kmeans_c:
     def get_tracked_params(self):
       return cdict_to_python_dict(self.params.tr)
     
-    def file_fit(self, input_matrix_path, output_clusters_path, additional_params, additional_info, static_label = 1):
+    def file_fit(self, input_matrix_path, output_clusters_path, additional_params, additional_info, static_label = 1, external_vectors=None):
         cdef uint32_t is_numpy
 
+        if external_vectors is not None:
+          external_vectors = convert_matrix_to_csr_matrix(external_vectors, &is_numpy)
+          
         if type(output_clusters_path) != bytes:
             output_clusters_path = str.encode(output_clusters_path)
 
-        self.reset_params(additional_params, additional_info)
+        self.reset_params(additional_params, additional_info, external_vectors)
         X = convert_matrix_to_csr_matrix(input_matrix_path, &is_numpy)
         clusters = self._fit_csr_matrix(X)
         write_clusters_to_file(clusters, output_clusters_path, static_label)
