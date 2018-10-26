@@ -15,7 +15,7 @@ def do_evaluations(datasets):
     dataset_results[dataset_name] = {'varying_k': {'avoided_calculations': []}}
     k_values = list(range(1, 102, 20)) + list(range(200, 1001, 200))
     bv_annz = 0.3
-    algorithm = "kmeans_optimized"
+    algorithm = "bv_kmeans"
     
     for k in k_values:
       print("Executing %s with k=%d (bv_annz: %f)"%(algorithm, k, bv_annz))

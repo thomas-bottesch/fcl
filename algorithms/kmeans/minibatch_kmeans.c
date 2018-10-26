@@ -25,7 +25,7 @@ void create_chosen_sample_map(uint32_t** chosen_sample_map
     }
 }
 
-struct csr_matrix* minibatch_kmeans_optimized(struct csr_matrix* samples
+struct csr_matrix* bv_minibatch_kmeans(struct csr_matrix* samples
                                               , struct kmeans_params *prms) {
 
 
@@ -119,7 +119,7 @@ struct csr_matrix* minibatch_kmeans_optimized(struct csr_matrix* samples
                     /* iterate over all cluster centers */
 
                     if (!disable_optimizations) {
-                        /* minibatch_kmeans_optimized */
+                        /* bv_minibatch_kmeans */
 
                         /* we already know the distance to the cluster from last iteration */
                         if (cluster_id == ctx.previous_cluster_assignments[sample_id]) continue;

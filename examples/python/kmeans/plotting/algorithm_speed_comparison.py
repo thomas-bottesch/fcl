@@ -20,17 +20,24 @@ def do_evaluations(dataset_path, dataset_name):
   
   print("Doing evaluations for dataset %s"%dataset_path)
   
-  algorithm_results = {'kmeans_optimized': {}
+  algorithm_results = {'bv_kmeans': {}
                        , 'yinyang': {}
-                       , 'fast_yinyang': {}
+                       , 'bv_yinyang': {}
                        , 'elkan': {}
                        , 'pca_kmeans': {}
                        , 'pca_elkan': {}
+                       , 'pca_yinyang': {}
                        }
   
   additional_algo_data =  {}
-  if 'pca_kmeans' in algorithm_results or \
-     'pca_elkan' in algorithm_results:
+  
+  calculate_svd = False
+  for algo in algorithm_results:
+    if "pca" in algo:
+      calculate_svd = True
+      break
+  
+  if calculate_svd:
     p = TruncatedSVD(n_components = int(data_as_csrmatrix.annz * 0.1))
     start = time.time()
     p.fit(data_as_csrmatrix.to_numpy())

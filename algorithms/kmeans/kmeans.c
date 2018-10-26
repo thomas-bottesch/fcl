@@ -10,7 +10,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <float.h>
-struct csr_matrix* kmeans_optimized(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct csr_matrix* bv_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint32_t i;
     uint64_t j;
@@ -22,7 +22,7 @@ struct csr_matrix* kmeans_optimized(struct csr_matrix* samples, struct kmeans_pa
     struct csr_matrix* resulting_clusters;
     uint32_t disable_optimizations;
 
-    /* kmeans_optimized: contains all samples which are eligible for the cluster
+    /* bv_kmeans: contains all samples which are eligible for the cluster
      * no change optimization.
      */
     uint32_t *eligible_for_cluster_no_change_optimization;
@@ -39,14 +39,14 @@ struct csr_matrix* kmeans_optimized(struct csr_matrix* samples, struct kmeans_pa
     if (!disable_optimizations) {
         initialize_csr_matrix_zero(&block_vectors_samples);
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_KMEANS_OPTIMIZED) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_KMEANS) {
             /* search for a suitable size of the block vectors for the input samples and create them */
             search_samples_block_vectors(prms, ctx.samples, desired_bv_annz
                                          , &block_vectors_samples
                                          , &block_vectors_dim);
         }
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_KMEANS_OPTIMIZED_ONDEMAND) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_KMEANS_ONDEMAND) {
             block_vectors_dim = search_block_vector_size(ctx.samples, desired_bv_annz, prms->verbose);
 
             keys_per_block = ctx.samples->dim / block_vectors_dim;
@@ -100,7 +100,7 @@ struct csr_matrix* kmeans_optimized(struct csr_matrix* samples, struct kmeans_pa
                     if (i != 0 && ctx.cluster_counts[cluster_id] == 0) continue;
 
                     if (!disable_optimizations) {
-                        /* kmeans_optimized */
+                        /* bv_kmeans */
 
                         /* we already know the distance to the cluster from last iteration */
                         if (cluster_id == ctx.previous_cluster_assignments[sample_id]) continue;
@@ -121,7 +121,7 @@ struct csr_matrix* kmeans_optimized(struct csr_matrix* samples, struct kmeans_pa
                             saved_calculations_cauchy += 1;
                             goto end;
                         }
-                        if (prms->kmeans_algorithm_id == ALGORITHM_KMEANS_OPTIMIZED) {
+                        if (prms->kmeans_algorithm_id == ALGORITHM_BV_KMEANS) {
                             /* evaluate block vector approximation. */
                             dist = euclid_vector_list(&block_vectors_samples, sample_id
                                           , block_vectors_clusters, cluster_id

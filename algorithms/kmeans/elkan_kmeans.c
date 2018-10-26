@@ -48,14 +48,14 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
     if (!disable_optimizations) {
         initialize_csr_matrix_zero(&block_vectors_samples);
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_ELKAN_KMEANS_OPTIMIZED) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_ELKAN_KMEANS) {
             /* search for a suitable size of the block vectors for the input samples and create them */
             search_samples_block_vectors(prms, ctx.samples, desired_bv_annz
                                          , &block_vectors_samples
                                          , &block_vectors_dim);
         }
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_ELKAN_KMEANS_OPTIMIZED_ONDEMAND) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_ELKAN_KMEANS_ONDEMAND) {
             block_vectors_dim = search_block_vector_size(ctx.samples, desired_bv_annz, prms->verbose);
 
             keys_per_block = ctx.samples->dim / block_vectors_dim;
@@ -170,7 +170,7 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
                                 saved_calculations_cauchy += 1;
                                 continue;
                             }
-                            if (prms->kmeans_algorithm_id == ALGORITHM_ELKAN_KMEANS_OPTIMIZED) {
+                            if (prms->kmeans_algorithm_id == ALGORITHM_BV_ELKAN_KMEANS) {
                                 /* evaluate block vector approximation. */
                                 dist = euclid_vector_list(&block_vectors_samples, sample_id
                                               , block_vectors_clusters, cluster_id

@@ -23,7 +23,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
     VALUE_TYPE* vector_lengths_pca_samples;
     VALUE_TYPE* vector_lengths_pca_clusters;
 
-    /* kmeans_optimized: contains all samples which are eligible for the cluster
+    /* pca_kmeans: contains all samples which are eligible for the cluster
      * no change optimization.
      */
     uint32_t *eligible_for_cluster_no_change_optimization;

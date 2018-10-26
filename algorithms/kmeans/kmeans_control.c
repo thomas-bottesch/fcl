@@ -8,16 +8,16 @@
 #include "pca_yinyang.h"
 
 const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
-										  , "kmeans_optimized"
-                                          , "kmeans_optimized_ondemand"
+										  , "bv_kmeans"
+                                          , "bv_kmeans_ondemand"
 										  , "yinyang"
-										  , "fast_yinyang"
-                                          , "fast_yinyang_ondemand"
+										  , "bv_yinyang"
+                                          , "bv_yinyang_ondemand"
 										  , "minibatch_kmeans"
-										  , "minibatch_kmeans_optimized"
+										  , "bv_minibatch_kmeans"
 										  , "elkan"
-										  , "elkan_optimized"
-										  , "elkan_optimized_ondemand"
+										  , "bv_elkan"
+										  , "bv_elkan_ondemand"
 	                                      , "pca_elkan"
 	                                      , "pca_yinyang"
 										  , "pca_kmeans"};
@@ -37,14 +37,14 @@ const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "yinyang k-means with pca lower bounds"
 											  , "k-means with pca lower bounds"};
 
-kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {kmeans_optimized
-														  , kmeans_optimized
-														  , kmeans_optimized
+kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmeans
+														  , bv_kmeans
+														  , bv_kmeans
 														  , yinyang_kmeans
 														  , yinyang_kmeans
 														  , yinyang_kmeans
-														  , minibatch_kmeans_optimized
-														  , minibatch_kmeans_optimized
+														  , bv_minibatch_kmeans
+														  , bv_minibatch_kmeans
                                                           , elkan_kmeans
                                                           , elkan_kmeans
                                                           , elkan_kmeans

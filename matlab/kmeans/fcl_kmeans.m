@@ -13,8 +13,8 @@
 %       k:      the desired number of clusters
 %       opts:   (Optional) struct containing the following additional parameters:
 %
-%               opts.algorithm: Choices are "kmeans", "kmeans_optimized" (default), "yinyang", 
-%                               "fast_yinyang", "minibatch_kmeans", "minibatch_kmeans_optimized", "elkan"
+%               opts.algorithm: Choices are "kmeans", "bv_kmeans" (default), "yinyang", 
+%                               "bv_yinyang", "minibatch_kmeans", "bv_minibatch_kmeans", "elkan"
 %               opts.init:      Initialization strategy. Choices are "random" (default) and "kmeans++".              
 %               opts.seed:      Seed when using random initializations. Default is 1.
 %               opts.tol:       Tolerance (stopping criterion). Default is 1e-6.

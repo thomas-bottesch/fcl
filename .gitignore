@@ -50,3 +50,4 @@ octave-workspace
 # eclipse
 /.project
 /.pydevproject
+/.eggs/

@@ -17,7 +17,7 @@ def do_evaluations(datasets):
     for i in range(1,101, 10):
       bv_annz = float(i)/100
       print("Executing k-means optimized with bv_annz: %f"%bv_annz)
-      km = kmeans.KMeans(n_jobs=1, no_clusters=1000, algorithm="kmeans_optimized", init='random', additional_params = {'bv_annz': bv_annz}, seed = 0, verbose = False)
+      km = kmeans.KMeans(n_jobs=1, no_clusters=1000, algorithm="bv_kmeans", init='random', additional_params = {'bv_annz': bv_annz}, seed = 0, verbose = False)
       km.fit(dataset_as_string)
       dataset_results[dataset_name]['searching_best_b']['durations'].append(km.get_tracked_params()['duration_kmeans'] / 1000)
       dataset_results[dataset_name]['searching_best_b']['bv_annz'].append(km.get_tracked_params()['additional_params']['bv_annz'])

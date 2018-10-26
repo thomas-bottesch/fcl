@@ -35,7 +35,7 @@ uint32_t fcl_kmeans_fit(const mxArray* input_data
     initialize_random_generator();
 
     // create struct with default parameters;
-    (*prms)->kmeans_algorithm_id = ALGORITHM_KMEANS_OPTIMIZED;
+    (*prms)->kmeans_algorithm_id = ALGORITHM_BV_KMEANS;
     (*prms)->no_clusters = num_clusters;
     (*prms)->seed = rand() % ((uint32_t) -1);
     (*prms)->iteration_limit = 1000;

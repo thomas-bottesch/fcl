@@ -47,14 +47,14 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
     if (!disable_optimizations) {
         initialize_csr_matrix_zero(&block_vectors_samples);
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG) {
         /* search for a suitable size of the block vectors for the input samples and create them */
         search_samples_block_vectors(prms, ctx.samples, desired_bv_annz
                                      , &block_vectors_samples
                                      , &block_vectors_dim);
         }
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG_ONDEMAND) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG_ONDEMAND) {
             block_vectors_dim = search_block_vector_size(ctx.samples, desired_bv_annz, prms->verbose);
 
             keys_per_block = ctx.samples->dim / block_vectors_dim;
@@ -141,14 +141,14 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
                             /* block vector optimizations */
 
                             /* check if sqrt( ||s||² + ||c||² - 2*< s_B, c_B > ) >= ctx.cluster_distances[sample_id] */
-                            if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG) {
+                            if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG) {
                                 /* evaluate block vector approximation. */
                                 dist = euclid_vector_list(&block_vectors_samples, sample_id
                                               , block_vectors_clusters, cluster_id
                                               , ctx.vector_lengths_samples
                                               , ctx.vector_lengths_clusters);
                             } else {
-                                /* kmeans_algorithm_id == ALGORITHM_FAST_YINYANG_ONDEMAND */
+                                /* kmeans_algorithm_id == ALGORITHM_BV_YINYANG_ONDEMAND */
                                 if (bv.keys == NULL) {
                                     create_block_vector_from_csr_matrix_vector(ctx.samples
                                                                                , sample_id
@@ -279,14 +279,14 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
                             if (i < 15) {
                                 /* block vector optimizations */
                                 /* check if sqrt( ||s||² + ||c||² - 2*< s_B, c_B > ) >= ctx.cluster_distances[sample_id] */
-                                if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG) {
+                                if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG) {
                                     /* evaluate block vector approximation. */
                                     dist = euclid_vector_list(&block_vectors_samples, sample_id
                                                   , block_vectors_clusters, cluster_id
                                                   , ctx.vector_lengths_samples
                                                   , ctx.vector_lengths_clusters);
                                 } else {
-                                    /* kmeans_algorithm_id == ALGORITHM_FAST_YINYANG_ONDEMAND */
+                                    /* kmeans_algorithm_id == ALGORITHM_BV_YINYANG_ONDEMAND */
                                     if (bv.keys == NULL) {
                                         create_block_vector_from_csr_matrix_vector(ctx.samples
                                                                                    , sample_id

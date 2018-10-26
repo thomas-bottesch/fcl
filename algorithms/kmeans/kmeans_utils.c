@@ -404,7 +404,7 @@ void post_process_iteration(struct general_kmeans_context* ctx, struct kmeans_pa
     ctx->total_no_calcs += ctx->done_calculations;
     if (ctx->track_time) ctx->duration_all_calcs = (VALUE_TYPE) get_diff_in_microseconds(ctx->durations);
 
-    /* calculate the objective. This is exact for kmeans/kmeans_optimized */
+    /* calculate the objective. This is exact for kmeans/bv_kmeans */
     ctx->wcssd = sum_value_array(ctx->cluster_distances, ctx->samples->sample_count);
 
     if (fabs(ctx->wcssd - ctx->old_wcssd) < prms->tol || ctx->no_changes == 0) {
@@ -800,7 +800,7 @@ void create_kmeans_cluster_groups(struct sparse_vector *clusters_list
                                           , &clusters);
 
     /* cluster the cluster centers into no_group groups */
-    result_groups = kmeans_optimized(&clusters, &prms);
+    result_groups = bv_kmeans(&clusters, &prms);
     *no_groups = result_groups->sample_count;
 
     /* assign clusters to groups */
