@@ -187,7 +187,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
                                              char** path_model_file,
                                              char** path_tracking_params) {
     struct arg_lit *help = arg_lit0(NULL,"help", "print this help and exit");
-    struct arg_str *algorithm = arg_str0(NULL,"algorithm","<name>", "choose the k-means algorithm_id: (default = kmeans_optimized)");
+    struct arg_str *algorithm = arg_str0(NULL,"algorithm","<name>", "choose the k-means algorithm_id: (default = bv_kmeans)");
     struct arg_int *cluster_count = arg_int0(NULL,"no_clusters","<k>", "number of clusters to generate (default=10)");
     struct arg_int *random_seed = arg_int0(NULL,"seed","<random_seed>", "the random seed to generate different starting positions (default=1)");
     struct arg_int *no_cores = arg_int0(NULL,"no_cores","<no_cores>", "the number of cores to use if compiled with openmp (uses all cores with -1 = default)");
@@ -345,7 +345,7 @@ usage_kmeans_params:
     }
 
 
-    prms.kmeans_algorithm_id = ALGORITHM_KMEANS_OPTIMIZED;
+    prms.kmeans_algorithm_id = ALGORITHM_BV_KMEANS;
     if (algorithm->count > 0) {
         for (i = 0; i < no_kmeans_algorithms; i++) {
             if (strcmp(algorithm->sval[0], KMEANS_ALGORITHM_NAMES[i])==0) {

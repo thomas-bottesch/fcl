@@ -10,7 +10,7 @@ function do_varying_k_evaluation(datasets)
     opts.silent = true;
     opts.no_cores = 1;
     opts.seed = 0;
-    opts.algorithm = 'kmeans_optimized';
+    opts.algorithm = 'bv_kmeans';
     
     k_values = [floor(linspace(2, 100, 5)) floor(linspace(200, 1000, 5))];
     

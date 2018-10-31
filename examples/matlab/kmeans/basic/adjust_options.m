@@ -27,7 +27,7 @@ function adjust_options()
     
     % second example
     new_opts.silent = true;
-    new_opts.algorithm = 'kmeans_optimized';     % change the algorithm to kmeans_optimized
+    new_opts.algorithm = 'bv_kmeans';     % change the algorithm to bv_kmeans
     new_opts.additional_params.bv_annz = 0.125;  % modify internal parameters of the algorithm
     [ IDX, C ] = fcl_kmeans(X, k, new_opts);
 end

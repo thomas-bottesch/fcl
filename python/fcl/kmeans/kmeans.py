@@ -18,7 +18,7 @@ def is_numpy_available():
 
 class KMeans():   
     
-    def __init__(self, algorithm = "kmeans_optimized", no_clusters = 10
+    def __init__(self, algorithm = "bv_kmeans", no_clusters = 10
                  , seed = random.randint(0, 2**31), iteration_limit = 1000, tol = 1e-6, n_jobs = -1
                  , remove_empty_clusters = False, verbose = False, result_type = 'auto', init="random"
                  , additional_params = {}, additional_info = {}
