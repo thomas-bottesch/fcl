@@ -53,8 +53,10 @@ kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmea
                                                           , pca_kmeans};
 
 const char *KMEANS_INIT_NAMES[NO_KMEANS_INITS] = {"random"
-                                  , "kmeans++"};
+                                                  , "kmeans++"
+                                                  , "assignment_list"};
 
-const char *KMEANS_INIT_DESCRIPTION[NO_KMEANS_INITS] = {"initial cluster centers are random samples from input matrix"
-                                  	  	  , "initial cluster centers are samples from input matrix chosen by kmeans++ strategy"};
+const char *KMEANS_INIT_DESCRIPTION[NO_KMEANS_INITS] = {"initial cluster centers are random samples from input matrix",
+                                  	  	                "initial cluster centers are samples from input matrix chosen by kmeans++ strategy",
+                                                        "a list with len(list) = len(samples) is supplied which assigns each sample to a (subset of samples) = cluster centers"};
 

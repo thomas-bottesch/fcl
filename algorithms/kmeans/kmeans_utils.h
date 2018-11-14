@@ -163,6 +163,12 @@ void initialize_kmeans_random(struct general_kmeans_context* ctx,
 
 void initialize_kmeans_pp(struct general_kmeans_context* ctx,
                               struct kmeans_params *prms);
+                              
+void initialize_kmeans_assignment_list(struct general_kmeans_context* ctx,
+                                       struct kmeans_params *prms);
+                                       
+void preinitialize_kmeans_assignment_list(struct csr_matrix *samples,
+                                          struct kmeans_params *prms);
 
 /**
  * @brief Free old ctx->clusters and replace it with ctx->shifted_clusters.

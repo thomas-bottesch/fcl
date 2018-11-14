@@ -19,8 +19,17 @@
 typedef void (*kmeans_init_function) (struct general_kmeans_context* ctx
         											, struct kmeans_params *prms);
 
+typedef void (*kmeans_preinit_function) (struct csr_matrix *mtrx, struct kmeans_params *prms);
+
 kmeans_init_function KMEANS_INIT_FUNCTIONS[NO_KMEANS_INITS] \
-                                      = {initialize_kmeans_random, initialize_kmeans_pp};
+                                      = {initialize_kmeans_random,
+                                         initialize_kmeans_pp,
+                                         initialize_kmeans_assignment_list};
+
+kmeans_preinit_function KMEANS_PREINIT_FUNCTIONS[NO_KMEANS_INITS] \
+                                                  = {NULL,
+                                                     NULL,
+                                                     preinitialize_kmeans_assignment_list};
 
 void get_kmeanspp_assigns(struct csr_matrix *mtrx
                           , struct csr_matrix *blockvectors_mtrx
@@ -66,6 +75,76 @@ void initialize_kmeans_random(struct general_kmeans_context* ctx,
     for (i = 0; i < ctx->samples->sample_count; i++) {
         ctx->cluster_assignments[i] = i % ctx->no_clusters;
     }
+}
+
+void preinitialize_kmeans_assignment_list(struct csr_matrix *samples,
+                                          struct kmeans_params *prms) {
+    uint64_t i;
+    uint32_t no_clusters;
+
+    no_clusters = 0;
+
+    if (prms->initprms == NULL) {
+        if (prms->verbose) LOG_ERROR("Initprms are empty");
+        goto error_invalid_init_data;
+    }
+
+    if (prms->initprms->assignments == NULL) {
+        if (prms->verbose) LOG_ERROR("Init assignments are empty");
+        goto error_invalid_init_data;
+    }
+
+    if (prms->initprms->len_assignments != samples->sample_count) {
+        if (prms->verbose) LOG_ERROR("Init assignments have invalid length");
+        goto error_invalid_init_data;
+    }
+
+    for (i = 0; i < samples->sample_count; i++) {
+        if (prms->initprms->assignments[i] > no_clusters) {
+            no_clusters = prms->initprms->assignments[i];
+        }
+    }
+    no_clusters += 1;
+    goto init_data_correct;
+
+error_invalid_init_data:
+    if (prms->verbose) LOG_ERROR("Invalid assignment_list data. Using random init instead with k=10.");
+    prms->init_id = KMEANS_INIT_RANDOM;
+    prms->no_clusters = 10;
+    return;
+init_data_correct:
+    prms->no_clusters = no_clusters;
+}
+
+void initialize_kmeans_assignment_list(struct general_kmeans_context* ctx,
+                                       struct kmeans_params *prms) {
+    uint64_t i;
+    KEY_TYPE *keys;
+    VALUE_TYPE *values;
+    uint64_t nnz;
+
+    for (i = 0; i < ctx->samples->sample_count; i++) {
+        ctx->cluster_assignments[i] = prms->initprms->assignments[i];
+        ctx->cluster_counts[ctx->cluster_assignments[i]] += 1;
+    }
+
+    for (i = 0; i < ctx->samples->sample_count; i++) {
+        keys = ctx->samples->keys + ctx->samples->pointers[i];
+        values = ctx->samples->values + ctx->samples->pointers[i];
+        nnz = ctx->samples->pointers[i + 1] - ctx->samples->pointers[i];
+        add_sample_to_hashmap(ctx->clusters_raw, keys, values, nnz, ctx->cluster_assignments[i]);
+        ctx->was_assigned[i] = 1;
+    }
+
+    for (i = 0; i < prms->no_clusters; i++) {
+        HASH_SORT(ctx->clusters_raw[i], id_sort);
+    }
+
+    create_vector_list_from_hashmap(ctx->clusters_raw
+                                        , ctx->cluster_counts
+                                        , ctx->cluster_vectors
+                                        , ctx->no_clusters);
+
 }
 
 void initialize_kmeans_pp(struct general_kmeans_context* ctx,
@@ -516,6 +595,9 @@ void initialize_general_context(struct kmeans_params *prms
     if (prms->verbose) LOG_INFO("%s", KMEANS_ALGORITHM_NAMES[prms->kmeans_algorithm_id]);
     if (prms->verbose) LOG_INFO("----------------");
 
+    if (KMEANS_PREINIT_FUNCTIONS[prms->init_id]) {
+        KMEANS_PREINIT_FUNCTIONS[prms->init_id](samples, prms);
+    }
 
     d_add_subint(&(prms->tr), "general_params", "no_clusters", prms->no_clusters);
     d_add_substring(&(prms->tr), "general_params", "algorithm", (char*) KMEANS_ALGORITHM_NAMES[prms->kmeans_algorithm_id]);

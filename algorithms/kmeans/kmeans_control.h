@@ -20,9 +20,10 @@
 #define ALGORITHM_PCA_YINYANG                         UINT32_C(12)
 #define ALGORITHM_PCA_KMEANS                          UINT32_C(13)
 
-#define NO_KMEANS_INITS                      UINT32_C(2)
+#define NO_KMEANS_INITS                      UINT32_C(3)
 #define KMEANS_INIT_RANDOM                   UINT32_C(0)
 #define KMEANS_INIT_KMPP                     UINT32_C(1)
+#define KMEANS_INIT_ASSIGN_LIST              UINT32_C(2)
 
 extern const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS];
 extern const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS];
@@ -30,21 +31,30 @@ extern const char *KMEANS_INIT_NAMES[NO_KMEANS_INITS];
 extern const char *KMEANS_INIT_DESCRIPTION[NO_KMEANS_INITS];
 
 /**
+ * @brief Parameters to control initialization step of kmeans
+ */
+struct initialization_params {
+    uint64_t* assignments;                  /**< an array where the position corresonds to a sample and the content is a cluster */
+    uint64_t  len_assignments;              /**< this number must correspond with the number of samples which are clustered */
+};
+
+/**
  * @brief Parameters to control the k-means execution
  */
 struct kmeans_params {
     /* algorithm params */
-    uint32_t kmeans_algorithm_id;   /**< id specifies which k-means algorithm to use */
-    uint32_t no_clusters;           /**< the number of clusters (k in k-means)  */
-    uint32_t seed;                  /**< different seeds result in different inits. */
-    uint32_t iteration_limit;       /**< stop k-means after this many iterations  */
-    VALUE_TYPE tol;                 /**< if objective is less than this, the algorithm converges  */
-    uint32_t verbose;               /**< if true print info messages while executing  */
-    uint32_t init_id;               /**< id specifies the kmeans init strategy to use  */
-    uint32_t remove_empty;          /**< if true removes empty clusters before returning the resulting clusters  */
-    uint32_t stop;                  /**< an immediate stop of the alforithm was requested  */
-    struct cdict* tr;               /**< tracking data results. e.g. calculations per iteration */
-    struct csr_matrix* ext_vects;   /**< externally supplied vectors */
+    uint32_t kmeans_algorithm_id;           /**< id specifies which k-means algorithm to use */
+    uint32_t no_clusters;                   /**< the number of clusters (k in k-means)  */
+    uint32_t seed;                          /**< different seeds result in different inits. */
+    uint32_t iteration_limit;               /**< stop k-means after this many iterations  */
+    VALUE_TYPE tol;                         /**< if objective is less than this, the algorithm converges  */
+    uint32_t verbose;                       /**< if true print info messages while executing  */
+    uint32_t init_id;                       /**< id specifies the kmeans init strategy to use  */
+    uint32_t remove_empty;                  /**< if true removes empty clusters before returning the resulting clusters  */
+    uint32_t stop;                          /**< an immediate stop of the alforithm was requested  */
+    struct cdict* tr;                       /**< tracking data results. e.g. calculations per iteration */
+    struct csr_matrix* ext_vects;           /**< externally supplied vectors */
+    struct initialization_params* initprms; /**< parameters that control the initialization step of kmeans */
 };
 
 typedef struct csr_matrix* (*kmeans_algorithm_function) (struct csr_matrix* samples, struct kmeans_params *prms);
