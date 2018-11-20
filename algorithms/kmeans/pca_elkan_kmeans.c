@@ -14,14 +14,14 @@
 
 #include "elkan_commons.h"
 
-struct csr_matrix* pca_elkan_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct kmeans_result* pca_elkan_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint64_t i;
     uint64_t j;
     uint64_t k;
     struct sparse_vector* pca_projection_samples;  /* projection matrix of samples */
     struct sparse_vector* pca_projection_clusters; /* projection matrix of clusters */
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
     uint32_t disable_optimizations;
     struct general_kmeans_context ctx;
 
@@ -235,7 +235,7 @@ struct csr_matrix* pca_elkan_kmeans(struct csr_matrix* samples, struct kmeans_pa
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     free_general_context(&ctx, prms);
@@ -262,5 +262,5 @@ struct csr_matrix* pca_elkan_kmeans(struct csr_matrix* samples, struct kmeans_pa
     free_null(min_dist_cluster_clusters);
     free_null(distance_clustersold_to_clustersnew);
 
-    return resulting_clusters;
+    return res;
 }

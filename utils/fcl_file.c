@@ -15,6 +15,24 @@ uint32_t exists(const char *fname) {
     return 0;
 }
 
+void write_uint64_array_from_file(const char *fname,
+                                  uint64_t no_elements,
+                                  uint64_t* elements) {
+    FILE *file;
+    uint64_t i;
+
+    if (no_elements == 0 || elements == NULL) return;
+    file = fopen(fname, "w");
+
+    for (i = 0; i < no_elements - 1; i++) {
+        fprintf(file, "%" PRINTF_INT64_MODIFIER "u,", elements[i]);
+    }
+    fprintf(file, "%" PRINTF_INT64_MODIFIER "u", elements[i]);
+
+    fclose(file);
+    return;
+}
+
 void read_uint64_array_from_file(const char *fname,
                                  uint64_t* no_elements,
                                  uint64_t** elements) {

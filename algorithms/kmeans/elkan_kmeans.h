@@ -10,6 +10,6 @@
  * @param prms are the parameters to control the clustering
  * @return
  */
-struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params *prms);
+struct kmeans_result* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params *prms);
 
 #endif

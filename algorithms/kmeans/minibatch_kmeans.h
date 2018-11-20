@@ -10,7 +10,7 @@
  * @param prms are the parameters to control the clustering
  * @return
  */
-struct csr_matrix* bv_minibatch_kmeans(struct csr_matrix* samples
+struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
                                              , struct kmeans_params *prms);
 
 #endif

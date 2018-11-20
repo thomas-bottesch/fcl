@@ -14,7 +14,7 @@
 
 #include "elkan_commons.h"
 
-struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct kmeans_result* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint64_t i;
     uint64_t j;
@@ -24,7 +24,7 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
     VALUE_TYPE desired_bv_annz;         /* desired size of the block vectors */
     struct csr_matrix block_vectors_samples;  /* block vector matrix of samples */
     struct sparse_vector* block_vectors_clusters; /* block vector matrix of clusters */
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
     struct general_kmeans_context ctx;
     uint32_t disable_optimizations;
 
@@ -282,7 +282,7 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     if (!disable_optimizations) {
@@ -307,5 +307,5 @@ struct csr_matrix* elkan_kmeans(struct csr_matrix* samples, struct kmeans_params
     free_null(min_dist_cluster_clusters);
     free_null(distance_clustersold_to_clustersnew);
 
-    return resulting_clusters;
+    return res;
 }

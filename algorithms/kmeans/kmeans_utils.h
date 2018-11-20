@@ -20,6 +20,7 @@ struct general_kmeans_context {
     uint32_t *was_assigned;            /**< For every sample: Was it assigned to any cluster yet? */
     uint64_t *cluster_counts;          /**< Number of samples contained in every cluster */
     uint64_t *cluster_assignments;     /**< For every sample contains the assigned cluster */
+    uint64_t *initial_cluster_samples; /**< A list of sample_ids from ctx.samples that served as initial cluster centers */
 
     VALUE_TYPE wcssd;                  /**< objective recalculated in every iteration */
 
@@ -208,9 +209,17 @@ void free_general_context(struct general_kmeans_context* ctx
  *
  * @param[in] prms are the parameters, the algorithm was started with.
  * @param[in] ctx is the context which shall be freed.
+ * @return the struct containing the kmeans result
  */
-struct csr_matrix* create_result_clusters(struct kmeans_params *prms
+ struct kmeans_result* create_kmeans_result(struct kmeans_params *prms
                                           , struct general_kmeans_context* ctx);
+                                          
+/**
+ * @brief Cleans up the kmeans result.
+ *
+ * @param[in] res is the kmeans_result which shall be freed.
+ */
+void free_kmeans_result(struct kmeans_result* res);
 
 /**
  * @brief Iteratively searches for a block vector matrix until average nnz of the block

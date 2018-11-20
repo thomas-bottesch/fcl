@@ -21,6 +21,8 @@
 struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
                                              struct csr_matrix **input_dataset,
                                              char** path_model_file,
+                                             char** path_cluster_samples_result_file,
+                                             char** path_assignments_result_file,
                                              char** path_tracking_params) {
     struct arg_lit *help = arg_lit0(NULL,"help", "print this help and exit");
     struct arg_str *algorithm = arg_str0(NULL,"algorithm","<name>", "choose the k-means algorithm_id: (default = bv_kmeans)");
@@ -33,6 +35,9 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     struct arg_lit *remove_empty = arg_lit0(NULL, "remove_empty", "remove empty clusters from result (resulting no_clusters will most likely be less than requested no_clusters)");
     struct arg_file *input_dataset_file = arg_file1(NULL, NULL, "file_input_dataset", "Input dataset in libsvm format");
     struct arg_file *model_file = arg_file0(NULL, "file_model", "<path>", "Path, the model should be saved to when fitting / loaded from when predicting. (mandatory if predicting)");
+    struct arg_file *initial_cluster_samples_result_file = arg_file0(NULL, "file_cluster_samples_out", "<path>", "Saves a comma separated list of samples that were used as initial clusters.");
+    struct arg_file *init_assignments_result_file = arg_file0(NULL, "file_init_assignments_out", "<path>", "After finishing the clustering for every sample the final closest cluster is stored.");
+    struct arg_file *init_assignments_file = arg_file0(NULL, "file_init_assignments", "<path>", "Contains a no. samples long comma separated list of integers, which assigns each sample an initial cluster.");
     struct arg_str *kmeans_init = arg_str0(NULL,"init","<name>", "choose initialization strategy: (default = random)");
     struct arg_rex *add_params1 = arg_rexn(NULL, "param", "[\\w]+:[-+]?([0-9]*[.])?[0-9]+([eE][-+]?[0-9]+)?", NULL , 0, 100, 0, "Modify internal algorithm params.");
     struct arg_rem *add_params2 = arg_rem(NULL,                                            "e.g. --param bv_size:0.3 --param bv_enable:1 --param new_param:1");
@@ -47,6 +52,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     int no_kmeans_algorithms;
     int no_kmeans_inits;
     KEY_TYPE i;
+    uint64_t ui;
 
     int* labels;
 
@@ -80,6 +86,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
         args_set++;
     }
 
+    argtable[args_set] = init_assignments_file; args_set++;
     argtable[args_set] = no_cores; args_set++;
     argtable[args_set] = cluster_count; args_set++;
     argtable[args_set] = random_seed; args_set++;
@@ -88,6 +95,8 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     argtable[args_set] = silent; args_set++;
     argtable[args_set] = remove_empty; args_set++;
     argtable[args_set] = model_file; args_set++;
+    argtable[args_set] = initial_cluster_samples_result_file; args_set++;
+    argtable[args_set] = init_assignments_result_file; args_set++;
     argtable[args_set] = input_vectors_file; args_set++;
     argtable[args_set] = add_params1; args_set++;
     argtable[args_set] = add_params2; args_set++;
@@ -108,6 +117,9 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     tol->dval[0] = 1e-6;
     model_file->filename[0] = NULL;
     input_vectors_file->filename[0] = NULL;
+    init_assignments_file->filename[0] = NULL;
+    initial_cluster_samples_result_file->filename[0] = NULL;
+    init_assignments_result_file->filename[0] = NULL;
 
     progname = "fcl.exe";
 
@@ -209,6 +221,21 @@ usage_kmeans_params:
         }
     }
 
+    if (prms.init_id == KMEANS_INIT_ASSIGN_LIST) {
+
+        if (init_assignments_file->filename[0] == NULL) {
+            printf("With kmeans init strategy %s the parameter --file_init_assignments must be set!\n\n",
+                   kmeans_init->sval[0]);
+            goto usage_kmeans_params;
+        }
+
+        if ((init_assignments_file->filename[0] != NULL)
+            && !exists(init_assignments_file->filename[0])) {
+            printf("Unable to open file_init_assignments: %s\n\n", init_assignments_file->filename[0]);
+            goto usage_kmeans_params;
+        }
+    }
+
     prms.tr = NULL;
 
     if (add_params1->count > 0) {
@@ -242,11 +269,45 @@ usage_kmeans_params:
     prms.remove_empty = remove_empty->count > 0;
     prms.stop = 0;
     prms.ext_vects = NULL;
+    prms.initprms = NULL;
+
+    if (prms.init_id == KMEANS_INIT_ASSIGN_LIST) {
+        prms.initprms = ((struct initialization_params*) calloc(1, sizeof(struct initialization_params)));
+
+
+
+        read_uint64_array_from_file(init_assignments_file->filename[0],
+                                    &(prms.initprms->len_assignments),
+                                    &(prms.initprms->assignments));
+        if (prms.initprms->assignments == NULL) {
+            printf("unable to load file_init_assignments probably invalid syntax!!\n\n");
+            goto usage_kmeans_params;
+        }
+        prms.no_clusters = 0;
+        for (ui = 0; ui < prms.initprms->len_assignments; ui++) {
+            if (prms.no_clusters < prms.initprms->assignments[ui]) {
+                prms.no_clusters = prms.initprms->assignments[ui];
+            }
+        }
+        prms.no_clusters += 1;
+    }
 
     if (model_file->filename[0] != NULL) {
         *path_model_file = dupstr(model_file->filename[0]);
     } else {
         *path_model_file = NULL;
+    }
+
+    if (initial_cluster_samples_result_file->filename[0] != NULL) {
+        *path_cluster_samples_result_file = dupstr(initial_cluster_samples_result_file->filename[0]);
+    } else {
+        *path_cluster_samples_result_file = NULL;
+    }
+
+    if (init_assignments_result_file->filename[0] != NULL) {
+        *path_assignments_result_file = dupstr(init_assignments_result_file->filename[0]);
+    } else {
+        *path_assignments_result_file = NULL;
     }
 
     if (tracking_param_file->count > 0 && tracking_param_file->filename[0] != NULL) {
@@ -391,30 +452,49 @@ void kmeans_task(int argc, char *argv[]) {
     unsigned int subtask;
 
     char* path_model_file;
+    char* path_cluster_samples_result_file;
+    char* path_assignments_result_file;
     char* path_tracking_params;
     char* path_prediction_file;
 
     struct csr_matrix *input_dataset;
-    struct csr_matrix *clusters;
+    struct kmeans_result* res;
     struct kmeans_params prms;
 
     subtask = parse_command_fit_predict(argc, argv, "kmeans");
-    clusters = NULL;
     path_prediction_file = NULL;
 
     if (subtask == SUBTASK_FIT) {
-        prms = parse_kmeans_fit_params(argc - 1, argv + 1, &input_dataset, &path_model_file, &path_tracking_params);
+        prms = parse_kmeans_fit_params(argc - 1,
+                                       argv + 1,
+                                       &input_dataset,
+                                       &path_model_file,
+                                       &path_cluster_samples_result_file,
+                                       &path_assignments_result_file,
+                                       &path_tracking_params);
 
         /* fit */
-        clusters = KMEANS_ALGORITHM_FUNCTIONS[prms.kmeans_algorithm_id](input_dataset, &prms);
+        res = KMEANS_ALGORITHM_FUNCTIONS[prms.kmeans_algorithm_id](input_dataset, &prms);
 
         if (path_model_file != NULL) {
-            if (store_matrix_with_label(clusters, NULL, 1, path_model_file)) {
+            if (store_matrix_with_label(res->clusters, NULL, 1, path_model_file)) {
                 /* some error happened while opening file */
                 if (prms.verbose) LOG_ERROR("Unable to open model file: %s", path_model_file);
             } else {
                 if (prms.verbose) LOG_INFO("Model file successfully written to: %s", path_model_file);
             }
+        }
+
+        if (path_cluster_samples_result_file != NULL) {
+            write_uint64_array_from_file(path_cluster_samples_result_file,
+                                         res->len_initial_cluster_samples,
+                                         res->initial_cluster_samples);
+        }
+
+        if (path_assignments_result_file != NULL) {
+            write_uint64_array_from_file(path_assignments_result_file,
+                                         res->len_assignments,
+                                         res->assignments);
         }
 
         if (path_tracking_params != NULL) {
@@ -432,6 +512,8 @@ void kmeans_task(int argc, char *argv[]) {
         }
 
         free_null(path_model_file);
+        free_null(path_cluster_samples_result_file);
+        free_null(path_assignments_result_file);
         free_null(path_tracking_params);
         free_cdict(&(prms.tr));
         if (prms.ext_vects != NULL) {
@@ -439,33 +521,39 @@ void kmeans_task(int argc, char *argv[]) {
             free(prms.ext_vects);
         }
 
+        if (prms.initprms != NULL) {
+            if (prms.initprms->assignments != NULL) {
+                free(prms.initprms->assignments);
+            }
+            free(prms.initprms);
+        }
+
     }
     if (subtask == SUBTASK_PREDICT) {
         /* predict */
-        struct assign_result res;
+        struct assign_result assign_res;
         KEY_TYPE verbose;
         KEY_TYPE stop;
 
         /* load model */
         verbose = 1;
         stop = 0;
-        parse_kmeans_predict_params(argc - 1, argv + 1, &input_dataset, &clusters, &path_prediction_file, &verbose);
+        parse_kmeans_predict_params(argc - 1, argv + 1, &input_dataset, &(res->clusters), &path_prediction_file, &verbose);
 
         if (verbose) LOG_INFO("Started assigning\n");
-        res = assign(input_dataset, clusters, &stop);
+        assign_res = assign(input_dataset, res->clusters, &stop);
 
-        if (store_assign_result(&res, path_prediction_file)) {
+        if (store_assign_result(&assign_res, path_prediction_file)) {
             if (verbose) LOG_ERROR("Error while opening predict file: %s\n", path_prediction_file);
         } else {
             if (verbose) LOG_INFO("Predictions successfully written\n");
         }
 
-        free_assign_result(&res);
+        free_assign_result(&assign_res);
         free_null(path_prediction_file);
     }
 
-    free_csr_matrix(clusters);
-    free_null(clusters);
+    free_kmeans_result(res);
 
     free_csr_matrix(input_dataset);
     free(input_dataset);

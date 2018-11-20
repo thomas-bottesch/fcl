@@ -53,12 +53,24 @@ void free_general_context(struct general_kmeans_context* ctx
     free_null(ctx->clusters_raw);
     free_null(ctx->cluster_distances);
     free_null(ctx->cluster_assignments);
+    free_null(ctx->initial_cluster_samples);
     free_null(ctx->cluster_counts);
     free_null(ctx->vector_lengths_samples);
     free_null(ctx->vector_lengths_clusters);
     free_null(ctx->clusters_not_changed);
     free_null(ctx->was_assigned);
     free_null(ctx->previous_cluster_assignments);
+}
+
+void free_kmeans_result(struct kmeans_result* res) {
+    if (res->clusters != NULL) {
+        free_csr_matrix(res->clusters);
+        free_null(res->clusters);
+    }
+
+    free_null(res->assignments);
+    free_null(res->initial_cluster_samples);
+    free_null(res);
 }
 
 void initialize_kmeans_random(struct general_kmeans_context* ctx,
@@ -69,7 +81,8 @@ void initialize_kmeans_random(struct general_kmeans_context* ctx,
     create_vector_list_random(ctx->samples
                                      , ctx->cluster_vectors
                                      , ctx->no_clusters
-                                     , &(prms->seed));
+                                     , &(prms->seed)
+                                     , ctx->initial_cluster_samples);
 
     /* assign a random cluster to every sample */
     for (i = 0; i < ctx->samples->sample_count; i++) {
@@ -545,42 +558,76 @@ void print_iteration_summary(struct general_kmeans_context* ctx, struct kmeans_p
     d_add_int(&(prms->tr), "no_iterations", iteration + 1);
 }
 
-struct csr_matrix* create_result_clusters(struct kmeans_params *prms
+struct kmeans_result* create_kmeans_result(struct kmeans_params *prms
                                           , struct general_kmeans_context* ctx) {
-    struct csr_matrix* resulting_clusters;
-
+    struct kmeans_result* res;
+    uint64_t i;
     d_add_float(&(prms->tr), "duration_kmeans", (VALUE_TYPE) get_diff_in_microseconds(ctx->tm_start));
-    resulting_clusters = NULL;
-
+    res = (struct kmeans_result*) calloc(1, sizeof(struct kmeans_result));
     /* create result cluster structure by with empty clusters */
-    resulting_clusters = create_matrix_without_empty_elements(ctx->cluster_vectors
-                                                              , ctx->no_clusters
-                                                              , ctx->samples->dim
-                                                              , NULL);
+    res->clusters = create_matrix_without_empty_elements(ctx->cluster_vectors,
+                                                         ctx->no_clusters,
+                                                         ctx->samples->dim,
+                                                         NULL);
+
+    res->len_assignments = ctx->samples->sample_count;
+    res->assignments = (uint64_t*) calloc(res->len_assignments, sizeof(uint64_t));
+
+    res->len_initial_cluster_samples = ctx->no_clusters;
+    res->initial_cluster_samples = (uint64_t*) calloc(res->len_initial_cluster_samples, sizeof(uint64_t));
+
+    for(i = 0; i < ctx->no_clusters; i++) {
+        res->initial_cluster_samples[i] = ctx->initial_cluster_samples[i];
+    }
 
     if (prms->remove_empty) {
-        struct assign_result res;
+        struct assign_result assign_res;
+        uint64_t no_filled;
+        uint64_t* map;
+
+        no_filled = 0;
+        map = NULL;
+
         if (prms->verbose) LOG_INFO("Assigning all samples to clusters to find empty ones");
 
         /* assign all samples */
-        res = assign(ctx->samples, resulting_clusters, &(prms->stop));
-        if (!(prms->stop)) {
-            free_csr_matrix(resulting_clusters);
-            free_null(resulting_clusters);
-            resulting_clusters = create_matrix_without_empty_elements(ctx->cluster_vectors
-                                                                      , ctx->no_clusters
-                                                                      , ctx->samples->dim
-                                                                      , res.counts);
-            if (prms->verbose) LOG_INFO("Remaining clusters after deleting empty ones = %lu"
-                                      , resulting_clusters->sample_count);
+        assign_res = assign(ctx->samples, res->clusters, &(prms->stop));
+        map = (uint64_t*) calloc(ctx->no_clusters, sizeof(uint64_t));
+
+        for (i = 0; i < ctx->no_clusters; i++) {
+            if (assign_res.counts[i] != 0) {
+                map[i] = no_filled;
+                no_filled += 1;
+            }
         }
-        free_assign_result(&res);
+
+        if (!(prms->stop)) {
+            free_csr_matrix(res->clusters);
+            free_null(res->clusters);
+            res->clusters = create_matrix_without_empty_elements(ctx->cluster_vectors,
+                                                                 ctx->no_clusters,
+                                                                 ctx->samples->dim,
+                                                                 assign_res.counts);
+
+            for (i = 0; i < res->len_assignments; i++) {
+                res->assignments[i] = map[ctx->cluster_assignments[i]];
+            }
+
+            if (prms->verbose) LOG_INFO("Remaining clusters after deleting empty ones = %lu"
+                                      , res->clusters->sample_count);
+        }
+        free_assign_result(&assign_res);
+        free_null(map);
         d_add_float(&(prms->tr), "duration_kmeans_with_remove_empty"
                     , (VALUE_TYPE) get_diff_in_microseconds(ctx->tm_start));
+    } else {
+        for (i = 0; i < res->len_assignments; i++) {
+            res->assignments[i] = ctx->cluster_assignments[i];
+        }
     }
 
-    d_add_int(&(prms->tr), "no_clusters_remaining", resulting_clusters->sample_count);
-    return resulting_clusters;
+    d_add_int(&(prms->tr), "no_clusters_remaining", res->clusters->sample_count);
+    return res;
 }
 
 void initialize_general_context(struct kmeans_params *prms
@@ -629,6 +676,8 @@ void initialize_general_context(struct kmeans_params *prms
 
     ctx->cluster_counts = (uint64_t*) calloc(prms->no_clusters, sizeof(uint64_t));
     ctx->cluster_assignments = (uint64_t*) calloc(ctx->samples->sample_count, sizeof(uint64_t));
+    ctx->initial_cluster_samples = (uint64_t*) calloc(prms->no_clusters, sizeof(uint64_t));
+
     ctx->cluster_distances = (VALUE_TYPE*) calloc(ctx->samples->sample_count, sizeof(VALUE_TYPE));
 
     ctx->was_assigned = (uint32_t*) calloc(ctx->samples->sample_count, sizeof(uint32_t));
@@ -857,7 +906,7 @@ void create_kmeans_cluster_groups(struct sparse_vector *clusters_list
                                   , struct group** groups
                                   , uint64_t* no_groups) {
     uint64_t i;
-    struct csr_matrix* result_groups;
+    struct kmeans_result* res;
     uint64_t* cluster_counters;
     uint32_t stop;
     struct csr_matrix clusters;
@@ -882,11 +931,11 @@ void create_kmeans_cluster_groups(struct sparse_vector *clusters_list
                                           , &clusters);
 
     /* cluster the cluster centers into no_group groups */
-    result_groups = bv_kmeans(&clusters, &prms);
-    *no_groups = result_groups->sample_count;
+    res = bv_kmeans(&clusters, &prms);
+    *no_groups = res->clusters->sample_count;
 
     /* assign clusters to groups */
-    assign_res = assign(&clusters, result_groups, &stop);
+    assign_res = assign(&clusters, res->clusters, &stop);
 
     *groups = (struct group*) calloc(*no_groups, sizeof(struct group));
     cluster_counters = (uint64_t*) calloc(*no_groups, sizeof(uint64_t));
@@ -905,8 +954,7 @@ void create_kmeans_cluster_groups(struct sparse_vector *clusters_list
     }
     free_cdict(&(prms.tr));
     free(cluster_counters);
-    free_csr_matrix(result_groups);
-    free_null(result_groups);
+    free_kmeans_result(res);
     free_assign_result(&assign_res);
     free_csr_matrix(&clusters);
 }

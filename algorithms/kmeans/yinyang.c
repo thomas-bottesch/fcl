@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <float.h>
 
-struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct kmeans_result* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint32_t i;
     uint64_t j;
@@ -27,7 +27,7 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
     struct csr_matrix block_vectors_samples;
     struct sparse_vector* block_vectors_clusters; /* block vector matrix of clusters */
     struct general_kmeans_context ctx;
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
 
     VALUE_TYPE *distance_clustersold_to_clustersnew;
 
@@ -402,7 +402,7 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     if (!disable_optimizations) {
@@ -427,5 +427,5 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
     free_null(lower_bounds);
     free_null(cluster_to_group);
 
-    return resulting_clusters;
+    return res;
 }

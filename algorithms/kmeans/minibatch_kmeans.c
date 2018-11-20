@@ -25,7 +25,7 @@ void create_chosen_sample_map(uint32_t** chosen_sample_map
     }
 }
 
-struct csr_matrix* bv_minibatch_kmeans(struct csr_matrix* samples
+struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
                                               , struct kmeans_params *prms) {
 
 
@@ -41,7 +41,7 @@ struct csr_matrix* bv_minibatch_kmeans(struct csr_matrix* samples
 	struct convergence_context conv_ctx;
 	
     struct sparse_vector* block_vectors_clusters; /* block vector matrix of clusters */
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
     struct general_kmeans_context ctx;
 
     disable_optimizations = prms->kmeans_algorithm_id == ALGORITHM_MINIBATCH_KMEANS;
@@ -237,7 +237,7 @@ struct csr_matrix* bv_minibatch_kmeans(struct csr_matrix* samples
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     if (!disable_optimizations) {
@@ -246,5 +246,5 @@ struct csr_matrix* bv_minibatch_kmeans(struct csr_matrix* samples
     }
     free_null(chosen_sample_map);
     free_general_context(&ctx, prms);
-    return resulting_clusters;
+    return res;
 }

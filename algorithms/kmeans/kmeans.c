@@ -10,7 +10,7 @@
 #include <math.h>
 #include <unistd.h>
 #include <float.h>
-struct csr_matrix* bv_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct kmeans_result* bv_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint32_t i;
     uint64_t j;
@@ -19,7 +19,7 @@ struct csr_matrix* bv_kmeans(struct csr_matrix* samples, struct kmeans_params *p
     VALUE_TYPE desired_bv_annz;         /* desired size of the block vectors */
     struct csr_matrix block_vectors_samples;  /* block vector matrix of samples */
     struct sparse_vector* block_vectors_clusters; /* block vector matrix of clusters */
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
     uint32_t disable_optimizations;
 
     /* bv_kmeans: contains all samples which are eligible for the cluster
@@ -242,7 +242,7 @@ struct csr_matrix* bv_kmeans(struct csr_matrix* samples, struct kmeans_params *p
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     if (!disable_optimizations) {
@@ -255,5 +255,5 @@ struct csr_matrix* bv_kmeans(struct csr_matrix* samples, struct kmeans_params *p
     free_null(eligible_for_cluster_no_change_optimization);
 
 
-    return resulting_clusters;
+    return res;
 }

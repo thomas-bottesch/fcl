@@ -395,21 +395,20 @@ void kmeanspp_task(int argc, char *argv[]) {
     char* path_prediction_file;
 
     struct csr_matrix *input_dataset;
-    struct csr_matrix *clusters;
+    struct kmeans_result* res;
     struct kmeans_params prms;
 
     subtask = parse_command_fit_predict(argc, argv, "kmeanspp");
-    clusters = NULL;
     path_prediction_file = NULL;
 
     if (subtask == SUBTASK_FIT) {
         prms = parse_kmeanspp_fit_params(argc - 1, argv + 1, &input_dataset, &path_model_file, &path_tracking_params);
 
         /* fit */
-        clusters = KMEANS_ALGORITHM_FUNCTIONS[prms.kmeans_algorithm_id](input_dataset, &prms);
+        res = KMEANS_ALGORITHM_FUNCTIONS[prms.kmeans_algorithm_id](input_dataset, &prms);
 
         if (path_model_file != NULL) {
-            if (store_matrix_with_label(clusters, NULL, 1, path_model_file)) {
+            if (store_matrix_with_label(res->clusters, NULL, 1, path_model_file)) {
                 /* some error happened while opening file */
                 if (prms.verbose) LOG_ERROR("Unable to open model file: %s", path_model_file);
             } else {
@@ -442,30 +441,29 @@ void kmeanspp_task(int argc, char *argv[]) {
     }
     if (subtask == SUBTASK_PREDICT) {
         /* predict */
-        struct assign_result res;
+        struct assign_result assign_res;
         KEY_TYPE verbose;
         KEY_TYPE stop;
 
         /* load model */
         verbose = 1;
         stop = 0;
-        parse_kmeanspp_predict_params(argc - 1, argv + 1, &input_dataset, &clusters, &path_prediction_file, &verbose);
+        parse_kmeanspp_predict_params(argc - 1, argv + 1, &input_dataset, &(res->clusters), &path_prediction_file, &verbose);
 
         if (verbose) LOG_INFO("Started assigning\n");
-        res = assign(input_dataset, clusters, &stop);
+        assign_res = assign(input_dataset, res->clusters, &stop);
 
-        if (store_assign_result(&res, path_prediction_file)) {
+        if (store_assign_result(&assign_res, path_prediction_file)) {
             if (verbose) LOG_ERROR("Error while opening predict file: %s\n", path_prediction_file);
         } else {
             if (verbose) LOG_INFO("Predictions successfully written\n");
         }
 
-        free_assign_result(&res);
+        free_assign_result(&assign_res);
         free_null(path_prediction_file);
     }
 
-    free_csr_matrix(clusters);
-    free_null(clusters);
+    free_kmeans_result(res);
 
     free_csr_matrix(input_dataset);
     free(input_dataset);
