@@ -21,8 +21,7 @@
 struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
                                              struct csr_matrix **input_dataset,
                                              char** path_model_file,
-                                             char** path_cluster_samples_result_file,
-                                             char** path_assignments_result_file,
+                                             char** path_init_params_result_file,
                                              char** path_tracking_params) {
     struct arg_lit *help = arg_lit0(NULL,"help", "print this help and exit");
     struct arg_str *algorithm = arg_str0(NULL,"algorithm","<name>", "choose the k-means algorithm_id: (default = bv_kmeans)");
@@ -35,8 +34,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     struct arg_lit *remove_empty = arg_lit0(NULL, "remove_empty", "remove empty clusters from result (resulting no_clusters will most likely be less than requested no_clusters)");
     struct arg_file *input_dataset_file = arg_file1(NULL, NULL, "file_input_dataset", "Input dataset in libsvm format");
     struct arg_file *model_file = arg_file0(NULL, "file_model", "<path>", "Path, the model should be saved to when fitting / loaded from when predicting. (mandatory if predicting)");
-    struct arg_file *initial_cluster_samples_result_file = arg_file0(NULL, "file_cluster_samples_out", "<path>", "Saves a comma separated list of samples that were used as initial clusters.");
-    struct arg_file *init_assignments_result_file = arg_file0(NULL, "file_init_assignments_out", "<path>", "After finishing the clustering for every sample the final closest cluster is stored.");
+    struct arg_file *init_params_result_file = arg_file0(NULL, "file_init_params_out", "<path>", "Saves the initialization parameters. Can be used to initialize kmeans.");
     struct arg_file *init_assignments_file = arg_file0(NULL, "file_init_assignments", "<path>", "Contains a no. samples long comma separated list of integers, which assigns each sample an initial cluster.");
     struct arg_str *kmeans_init = arg_str0(NULL,"init","<name>", "choose initialization strategy: (default = random)");
     struct arg_rex *add_params1 = arg_rexn(NULL, "param", "[\\w]+:[-+]?([0-9]*[.])?[0-9]+([eE][-+]?[0-9]+)?", NULL , 0, 100, 0, "Modify internal algorithm params.");
@@ -95,8 +93,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     argtable[args_set] = silent; args_set++;
     argtable[args_set] = remove_empty; args_set++;
     argtable[args_set] = model_file; args_set++;
-    argtable[args_set] = initial_cluster_samples_result_file; args_set++;
-    argtable[args_set] = init_assignments_result_file; args_set++;
+    argtable[args_set] = init_params_result_file; args_set++;
     argtable[args_set] = input_vectors_file; args_set++;
     argtable[args_set] = add_params1; args_set++;
     argtable[args_set] = add_params2; args_set++;
@@ -118,8 +115,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     model_file->filename[0] = NULL;
     input_vectors_file->filename[0] = NULL;
     init_assignments_file->filename[0] = NULL;
-    initial_cluster_samples_result_file->filename[0] = NULL;
-    init_assignments_result_file->filename[0] = NULL;
+    init_params_result_file->filename[0] = NULL;
 
     progname = "fcl.exe";
 
@@ -274,11 +270,6 @@ usage_kmeans_params:
     if (prms.init_id == KMEANS_INIT_ASSIGN_LIST) {
         prms.initprms = ((struct initialization_params*) calloc(1, sizeof(struct initialization_params)));
 
-
-
-        read_uint64_array_from_file(init_assignments_file->filename[0],
-                                    &(prms.initprms->len_assignments),
-                                    &(prms.initprms->assignments));
         if (prms.initprms->assignments == NULL) {
             printf("unable to load file_init_assignments probably invalid syntax!!\n\n");
             goto usage_kmeans_params;
@@ -298,16 +289,10 @@ usage_kmeans_params:
         *path_model_file = NULL;
     }
 
-    if (initial_cluster_samples_result_file->filename[0] != NULL) {
-        *path_cluster_samples_result_file = dupstr(initial_cluster_samples_result_file->filename[0]);
+    if (init_params_result_file->filename[0] != NULL) {
+        *path_init_params_result_file = dupstr(init_params_result_file->filename[0]);
     } else {
-        *path_cluster_samples_result_file = NULL;
-    }
-
-    if (init_assignments_result_file->filename[0] != NULL) {
-        *path_assignments_result_file = dupstr(init_assignments_result_file->filename[0]);
-    } else {
-        *path_assignments_result_file = NULL;
+        *path_init_params_result_file = NULL;
     }
 
     if (tracking_param_file->count > 0 && tracking_param_file->filename[0] != NULL) {
@@ -452,8 +437,7 @@ void kmeans_task(int argc, char *argv[]) {
     unsigned int subtask;
 
     char* path_model_file;
-    char* path_cluster_samples_result_file;
-    char* path_assignments_result_file;
+    char* path_init_params_result_file;
     char* path_tracking_params;
     char* path_prediction_file;
 
@@ -469,8 +453,7 @@ void kmeans_task(int argc, char *argv[]) {
                                        argv + 1,
                                        &input_dataset,
                                        &path_model_file,
-                                       &path_cluster_samples_result_file,
-                                       &path_assignments_result_file,
+                                       &path_init_params_result_file,
                                        &path_tracking_params);
 
         /* fit */
@@ -485,16 +468,8 @@ void kmeans_task(int argc, char *argv[]) {
             }
         }
 
-        if (path_cluster_samples_result_file != NULL) {
-            write_uint64_array_from_file(path_cluster_samples_result_file,
-                                         res->len_initial_cluster_samples,
-                                         res->initial_cluster_samples);
-        }
-
-        if (path_assignments_result_file != NULL) {
-            write_uint64_array_from_file(path_assignments_result_file,
-                                         res->len_assignments,
-                                         res->assignments);
+        if (path_init_params_result_file != NULL) {
+            write_initialization_params_file(path_init_params_result_file, res->initprms);
         }
 
         if (path_tracking_params != NULL) {
@@ -512,8 +487,7 @@ void kmeans_task(int argc, char *argv[]) {
         }
 
         free_null(path_model_file);
-        free_null(path_cluster_samples_result_file);
-        free_null(path_assignments_result_file);
+        free_null(path_init_params_result_file);
         free_null(path_tracking_params);
         free_cdict(&(prms.tr));
         if (prms.ext_vects != NULL) {
@@ -522,10 +496,8 @@ void kmeans_task(int argc, char *argv[]) {
         }
 
         if (prms.initprms != NULL) {
-            if (prms.initprms->assignments != NULL) {
-                free(prms.initprms->assignments);
-            }
-            free(prms.initprms);
+            free_init_params(prms.initprms);
+            free_null(prms.initprms);
         }
 
     }

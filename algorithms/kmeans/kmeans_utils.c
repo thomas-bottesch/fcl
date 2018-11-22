@@ -68,8 +68,8 @@ void free_kmeans_result(struct kmeans_result* res) {
         free_null(res->clusters);
     }
 
-    free_null(res->assignments);
-    free_null(res->initial_cluster_samples);
+    free_init_params(res->initprms);
+    free_null(res->initprms);
     free_null(res);
 }
 
@@ -570,14 +570,15 @@ struct kmeans_result* create_kmeans_result(struct kmeans_params *prms
                                                          ctx->samples->dim,
                                                          NULL);
 
-    res->len_assignments = ctx->samples->sample_count;
-    res->assignments = (uint64_t*) calloc(res->len_assignments, sizeof(uint64_t));
+    res->initprms = ((struct initialization_params*) calloc(1, sizeof(struct initialization_params)));
+    res->initprms->len_assignments = ctx->samples->sample_count;
+    res->initprms->assignments = (uint64_t*) calloc(res->initprms->len_assignments, sizeof(uint64_t));
 
-    res->len_initial_cluster_samples = ctx->no_clusters;
-    res->initial_cluster_samples = (uint64_t*) calloc(res->len_initial_cluster_samples, sizeof(uint64_t));
+    res->initprms->len_initial_cluster_samples = ctx->no_clusters;
+    res->initprms->initial_cluster_samples = (uint64_t*) calloc(res->initprms->len_initial_cluster_samples, sizeof(uint64_t));
 
     for(i = 0; i < ctx->no_clusters; i++) {
-        res->initial_cluster_samples[i] = ctx->initial_cluster_samples[i];
+        res->initprms->initial_cluster_samples[i] = ctx->initial_cluster_samples[i];
     }
 
     if (prms->remove_empty) {
@@ -609,8 +610,8 @@ struct kmeans_result* create_kmeans_result(struct kmeans_params *prms
                                                                  ctx->samples->dim,
                                                                  assign_res.counts);
 
-            for (i = 0; i < res->len_assignments; i++) {
-                res->assignments[i] = map[ctx->cluster_assignments[i]];
+            for (i = 0; i < res->initprms->len_assignments; i++) {
+                res->initprms->assignments[i] = map[ctx->cluster_assignments[i]];
             }
 
             if (prms->verbose) LOG_INFO("Remaining clusters after deleting empty ones = %lu"
@@ -621,8 +622,8 @@ struct kmeans_result* create_kmeans_result(struct kmeans_params *prms
         d_add_float(&(prms->tr), "duration_kmeans_with_remove_empty"
                     , (VALUE_TYPE) get_diff_in_microseconds(ctx->tm_start));
     } else {
-        for (i = 0; i < res->len_assignments; i++) {
-            res->assignments[i] = ctx->cluster_assignments[i];
+        for (i = 0; i < res->initprms->len_assignments; i++) {
+            res->initprms->assignments[i] = ctx->cluster_assignments[i];
         }
     }
 
