@@ -24,7 +24,7 @@
 #define NO_KMEANS_INITS                      UINT32_C(3)
 #define KMEANS_INIT_RANDOM                   UINT32_C(0)
 #define KMEANS_INIT_KMPP                     UINT32_C(1)
-#define KMEANS_INIT_ASSIGN_LIST              UINT32_C(2)
+#define KMEANS_INIT_PARAMS                   UINT32_C(2)
 
 extern const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS];
 extern const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS];

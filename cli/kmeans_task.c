@@ -35,7 +35,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     struct arg_file *input_dataset_file = arg_file1(NULL, NULL, "file_input_dataset", "Input dataset in libsvm format");
     struct arg_file *model_file = arg_file0(NULL, "file_model", "<path>", "Path, the model should be saved to when fitting / loaded from when predicting. (mandatory if predicting)");
     struct arg_file *init_params_result_file = arg_file0(NULL, "file_init_params_out", "<path>", "Saves the initialization parameters. Can be used to initialize kmeans.");
-    struct arg_file *init_assignments_file = arg_file0(NULL, "file_init_assignments", "<path>", "Contains a no. samples long comma separated list of integers, which assigns each sample an initial cluster.");
+    struct arg_file *init_params_file = arg_file0(NULL, "file_init_params", "<path>", "Contains a no. samples long comma separated list of integers, which assigns each sample an initial cluster.");
     struct arg_str *kmeans_init = arg_str0(NULL,"init","<name>", "choose initialization strategy: (default = random)");
     struct arg_rex *add_params1 = arg_rexn(NULL, "param", "[\\w]+:[-+]?([0-9]*[.])?[0-9]+([eE][-+]?[0-9]+)?", NULL , 0, 100, 0, "Modify internal algorithm params.");
     struct arg_rem *add_params2 = arg_rem(NULL,                                            "e.g. --param bv_size:0.3 --param bv_enable:1 --param new_param:1");
@@ -84,7 +84,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
         args_set++;
     }
 
-    argtable[args_set] = init_assignments_file; args_set++;
+    argtable[args_set] = init_params_file; args_set++;
     argtable[args_set] = no_cores; args_set++;
     argtable[args_set] = cluster_count; args_set++;
     argtable[args_set] = random_seed; args_set++;
@@ -114,7 +114,7 @@ struct kmeans_params parse_kmeans_fit_params(int argc, char *argv[],
     tol->dval[0] = 1e-6;
     model_file->filename[0] = NULL;
     input_vectors_file->filename[0] = NULL;
-    init_assignments_file->filename[0] = NULL;
+    init_params_file->filename[0] = NULL;
     init_params_result_file->filename[0] = NULL;
 
     progname = "fcl.exe";
@@ -217,20 +217,27 @@ usage_kmeans_params:
         }
     }
 
-    if (prms.init_id == KMEANS_INIT_ASSIGN_LIST) {
+    if (prms.init_id == KMEANS_INIT_PARAMS) {
 
-        if (init_assignments_file->filename[0] == NULL) {
+        if (init_params_file->filename[0] == NULL) {
             printf("With kmeans init strategy %s the parameter --file_init_assignments must be set!\n\n",
                    kmeans_init->sval[0]);
             goto usage_kmeans_params;
         }
+    }
 
-        if ((init_assignments_file->filename[0] != NULL)
-            && !exists(init_assignments_file->filename[0])) {
-            printf("Unable to open file_init_assignments: %s\n\n", init_assignments_file->filename[0]);
+    if (init_params_file->filename[0] != NULL) {
+        if (!exists(init_params_file->filename[0])) {
+            printf("Unable to open file_init_params: %s\n\n", init_params_file->filename[0]);
             goto usage_kmeans_params;
+        } else {
+            if (kmeans_init->count > 0 && prms.init_id != KMEANS_INIT_PARAMS) {
+                LOG_INFO("Overwriting chosen init strategy '%s' since init_params were supplied!", KMEANS_INIT_NAMES[prms.init_id]);
+            }
+            prms.init_id = KMEANS_INIT_PARAMS;
         }
     }
+
 
     prms.tr = NULL;
 
@@ -267,10 +274,10 @@ usage_kmeans_params:
     prms.ext_vects = NULL;
     prms.initprms = NULL;
 
-    if (prms.init_id == KMEANS_INIT_ASSIGN_LIST) {
-        prms.initprms = ((struct initialization_params*) calloc(1, sizeof(struct initialization_params)));
+    if (prms.init_id == KMEANS_INIT_PARAMS) {
+        read_initialization_params_file(init_params_file->filename[0], &(prms.initprms));
 
-        if (prms.initprms->assignments == NULL) {
+        if (prms.initprms == NULL || prms.initprms->assignments == NULL) {
             printf("unable to load file_init_assignments probably invalid syntax!!\n\n");
             goto usage_kmeans_params;
         }

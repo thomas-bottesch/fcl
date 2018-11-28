@@ -24,12 +24,12 @@ typedef void (*kmeans_preinit_function) (struct csr_matrix *mtrx, struct kmeans_
 kmeans_init_function KMEANS_INIT_FUNCTIONS[NO_KMEANS_INITS] \
                                       = {initialize_kmeans_random,
                                          initialize_kmeans_pp,
-                                         initialize_kmeans_assignment_list};
+                                         initialize_kmeans_init_params};
 
 kmeans_preinit_function KMEANS_PREINIT_FUNCTIONS[NO_KMEANS_INITS] \
                                                   = {NULL,
                                                      NULL,
-                                                     preinitialize_kmeans_assignment_list};
+                                                     preinitialize_kmeans_init_params};
 
 void get_kmeanspp_assigns(struct csr_matrix *mtrx
                           , struct csr_matrix *blockvectors_mtrx
@@ -90,8 +90,8 @@ void initialize_kmeans_random(struct general_kmeans_context* ctx,
     }
 }
 
-void preinitialize_kmeans_assignment_list(struct csr_matrix *samples,
-                                          struct kmeans_params *prms) {
+void preinitialize_kmeans_init_params(struct csr_matrix *samples,
+                                      struct kmeans_params *prms) {
     uint64_t i;
     uint32_t no_clusters;
 
@@ -118,6 +118,21 @@ void preinitialize_kmeans_assignment_list(struct csr_matrix *samples,
         }
     }
     no_clusters += 1;
+
+    if (no_clusters > prms->initprms->len_initial_cluster_samples) {
+        if (prms->verbose) LOG_ERROR("no_clusters > len_initial_cluster_samples");
+        goto error_invalid_init_data;
+    }
+
+    for (i = 0; i < prms->initprms->len_initial_cluster_samples; i++) {
+        if (prms->initprms->initial_cluster_samples[i] >= samples->sample_count) {
+            if (prms->verbose) LOG_ERROR("prms->initprms->initial_cluster_samples[i] >= samples->sample_count");
+            goto error_invalid_init_data;
+        }
+    }
+
+
+
     goto init_data_correct;
 
 error_invalid_init_data:
@@ -129,8 +144,8 @@ init_data_correct:
     prms->no_clusters = no_clusters;
 }
 
-void initialize_kmeans_assignment_list(struct general_kmeans_context* ctx,
-                                       struct kmeans_params *prms) {
+void initialize_kmeans_init_params(struct general_kmeans_context* ctx,
+                                   struct kmeans_params *prms) {
     uint64_t i;
     KEY_TYPE *keys;
     VALUE_TYPE *values;
@@ -157,6 +172,10 @@ void initialize_kmeans_assignment_list(struct general_kmeans_context* ctx,
                                         , ctx->cluster_counts
                                         , ctx->cluster_vectors
                                         , ctx->no_clusters);
+
+    for (i = 0; i < prms->initprms->len_initial_cluster_samples; i++) {
+        ctx->initial_cluster_samples[i] = prms->initprms->initial_cluster_samples[i];
+    }
 
 }
 
