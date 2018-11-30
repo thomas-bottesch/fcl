@@ -3,6 +3,10 @@
 
 #include "../../utils/types.h"
 #include <stdio.h>
+
+#define TOKEN_INITIAL_CLUSTER_SAMPLES "initial_cluster_samples"
+#define TOKEN_ASSIGNMENTS "assignments"
+
 /**
  * @brief Parameters to control initialization step of kmeans
  */

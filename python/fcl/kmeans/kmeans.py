@@ -1,5 +1,5 @@
 from __future__ import print_function
-from ._kmeans import KMEANS_ALGO_INFO, KMEANS_INIT_INFO
+from ._kmeans import KMEANS_ALGO_INFO, KMEANS_INIT_INFO, INIT_PRMS_TOKEN_INITIAL_CLUSTER_SAMPLES, INIT_PRMS_TOKEN_ASSIGNMENTS
 from ._kmeans import _kmeans_c, get_csr_matrix_from_object, store_csr_matrix_to_file, StopException
 from fcl.cython.utils.matrix.csr_matrix.csr_assign import _assign_c
 
@@ -22,7 +22,7 @@ class KMeans():
                  , seed = random.randint(0, 2**31), iteration_limit = 1000, tol = 1e-6, n_jobs = -1
                  , remove_empty_clusters = False, verbose = False, result_type = 'auto', init="random"
                  , additional_params = {}, additional_info = {}
-                 , create_signal_handler = True, external_vectors = None):
+                 , create_signal_handler = True, external_vectors = None, initialization_params = None):
         
         if n_jobs <= 0:
           n_jobs = -1
@@ -82,9 +82,16 @@ class KMeans():
         
         if not algorithm in KMEANS_ALGO_INFO:
             raise Exception("unknown algorithm %s"%algorithm)
-
+        
+        if initialization_params is not None:
+          init = "initialization_params"
+        
         if not init in KMEANS_INIT_INFO:
             raise Exception("unknown init %s"%init)
+        
+        if init == "initialization_params" and initialization_params is None:
+          raise Exception("init='initialization_params' was chosen. initialization_params must be passed to init!") 
+          
         
         self.additional_params = additional_params
         self.additional_info = additional_info
@@ -93,7 +100,7 @@ class KMeans():
         init_id, _ = KMEANS_INIT_INFO[init]
                
         self.kmeans_c_obj = _kmeans_c(kmeans_algorithm_id, no_clusters, seed, iteration_limit, tol,
-                                      n_jobs, init_id, self.remove_empty_clusters, verbose)
+                                      n_jobs, init_id, self.remove_empty_clusters, initialization_params, verbose)
         self.cluster_centers_ = None
         self.assign_c_obj = None
         
@@ -116,7 +123,9 @@ class KMeans():
     
     def fit(self, X, external_vectors = None):
         self.assign_c_obj = None
-        self.cluster_centers_ = self.kmeans_c_obj.fit(X, self.additional_params, self.additional_info, external_vectors)
+        python_res = self.kmeans_c_obj.fit(X, self.additional_params, self.additional_info, external_vectors)
+        self.cluster_centers_ = python_res['clusters']
+        self.initialization_params_ = python_res['initialization_params']
     
     def fit_predict(self, X, output_distance=False, output_numpy=None):
         self.fit(X)
@@ -135,6 +144,9 @@ class KMeans():
         return self.cluster_centers_
       else:
         return self.cluster_centers_.to_numpy()
+      
+    def get_output_initialization_params(self):
+      return self.initialization_params_
     
     def predict(self, X, output_distance=False, output_numpy=None):
       if self.cluster_centers_ is None:

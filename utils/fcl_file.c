@@ -1,5 +1,4 @@
 #include "fcl_file.h"
-#include <stdio.h>
 #include <stdlib.h>
 
 uint32_t exists(const char *fname) {

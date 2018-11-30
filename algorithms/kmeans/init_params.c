@@ -6,13 +6,9 @@
 #include "../../utils/fcl_logging.h"
 #include "../../utils/jsmn.h"
 
-#define TOKEN_INITIAL_CLUSTER_SAMPLES "initial_cluster_samples"
-#define TOKEN_ASSIGNMENTS "assignments"
-
 void write_initialization_params_file(const char* fname,
                                       struct initialization_params* initprms) {
     FILE *file;
-    uint64_t i;
     uint32_t indent, with_ending_comma;
     LOG_INFO("Inside write_initialization_params_file.");
     if (initprms == NULL) return;
@@ -174,8 +170,7 @@ void parse_initialization_params_json(char* s,
 void read_initialization_params_file(const char* fname,
                                      struct initialization_params** initprms) {
     FILE *file;
-    uint64_t i, comma_count, no_tokens, fsize;
-    int64_t r;
+    uint64_t no_tokens, fsize;
     char *s;
     size_t result;
 

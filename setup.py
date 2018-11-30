@@ -80,6 +80,7 @@ setup(
                                     , os.path.join(utils_path,"fcl_logging.c")
                                     , os.path.join(utils_path,"cdict.c")
                                     , os.path.join(utils_path,"fcl_file.c")
+                                    , os.path.join(utils_path,"jsmn.c")
                                     , os.path.join(utils_path,"fcl_random.c")
                                     , os.path.join(utils_path,"fcl_string.c")
                                     , os.path.join(utils_path,"fcl_time.c")
