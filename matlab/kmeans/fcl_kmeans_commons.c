@@ -15,6 +15,38 @@ uint32_t myIsScalar(const mxArray *dat) {
    return 1;
 }
 
+uint32_t myIs1dArray(const mxArray *dat) {
+    int32_t number_of_dims;
+    const mwSize *dim_array;
+
+   number_of_dims = mxGetNumberOfDimensions(dat);
+   if (number_of_dims != 2) return 0;
+
+   dim_array = mxGetDimensions(dat);
+
+   mexPrintf("%d %d\n", dim_array[0], dim_array[1]);
+
+   if (dim_array[0] != 1 && dim_array[1] < 1) {
+       mexPrintf("dim_array[0] != 1 && dim_array[1] < 1\n");
+       return 0;
+   }
+   return 1;
+}
+
+uint32_t isNumeric1dArray(const mxArray *dat) {
+    if (dat != NULL && myIs1dArray(dat)) {
+        if (mxIsNumeric(dat)) {
+            mexPrintf("mxIsNumeric(dat) == True");
+            return 1;
+        }
+        mexPrintf("mxIsNumeric(dat) == False");
+    }
+    if (dat == NULL) {
+        mexPrintf("dat == NULL");
+    }
+    return 0;
+}
+
 uint32_t isNumericScalar(const mxArray *dat) {
     if (dat != NULL && myIsScalar(dat)) {
         if (mxIsNumeric(dat)) return 1;
@@ -293,11 +325,64 @@ fail_load_scalar_dataset:
     return 1;
 }
 
+int32_t convert_struct_field_to_initialization_params(const mxArray* entryStruct,
+                                                      char* fieldname,
+                                                      struct initialization_params** initprms) {
+    const mxArray  *structField, *structField_assign, *structField_initial_smpls;
+    uint64_t i;
+    *initprms = NULL;
+    structField = NULL;
+    structField_assign = NULL;
+    structField_initial_smpls = NULL;
+
+
+    structField = mxGetField(entryStruct, 0, fieldname);
+
+    if (structField) {
+        if (!mxIsStruct(entryStruct)) {
+            return 0;
+        }
+
+        structField_initial_smpls = mxGetField(structField,0,TOKEN_INITIAL_CLUSTER_SAMPLES);
+        if (!isNumeric1dArray(structField_initial_smpls)) {
+            mexPrintf("Parameter initprms.%s must be an numeric array 1xn e.g. initprms.%s = [1,2,3]. Ignoring initprms!\n", TOKEN_INITIAL_CLUSTER_SAMPLES, TOKEN_INITIAL_CLUSTER_SAMPLES);
+            return 0;
+        }
+
+        structField_assign = mxGetField(structField,0,TOKEN_ASSIGNMENTS);
+        if (!isNumeric1dArray(structField_assign)) {
+            mexPrintf("Parameter initprms.%s must be an numeric array 1xn. e.g. initprms.%s = [1,2,3]. Ignoring initprms!\n", TOKEN_ASSIGNMENTS, TOKEN_ASSIGNMENTS);
+            return 0;
+        }
+        *initprms =  (struct initialization_params*) calloc(1, sizeof(struct initialization_params));
+        (*initprms)->len_initial_cluster_samples = mxGetDimensions(structField_initial_smpls)[1];
+        (*initprms)->len_assignments = mxGetDimensions(structField_assign)[1];
+
+        (*initprms)->initial_cluster_samples = (uint64_t*) calloc((*initprms)->len_initial_cluster_samples, sizeof(uint64_t));
+        (*initprms)->assignments = (uint64_t*) calloc((*initprms)->len_assignments, sizeof(uint64_t));
+
+        for (i = 0; i < (*initprms)->len_initial_cluster_samples; i++) {
+            (*initprms)->initial_cluster_samples[i] = mxGetPr(structField_initial_smpls)[i];
+            mexPrintf("%d,", (*initprms)->initial_cluster_samples[i]);
+        }
+        mexPrintf("\n");
+        for (i = 0; i < (*initprms)->len_assignments; i++) {
+            (*initprms)->assignments[i] = mxGetPr(structField_assign)[i];
+            mexPrintf("%d,", (*initprms)->assignments[i]);
+        }
+        mexPrintf("\n");
+        return 1;
+    }
+
+    return 1;
+}
+
 uint32_t read_optional_params(struct kmeans_params * prms, const mxArray *entryStruct) {
     const mxArray  *structField;
     char* input_buf;
     int32_t i;
     int32_t no_cores;
+    uint64_t ui;
 
     if (!mxIsStruct(entryStruct)) {
         return 0;
@@ -335,6 +420,7 @@ uint32_t read_optional_params(struct kmeans_params * prms, const mxArray *entryS
     if (!convert_struct_field_to_value_type(entryStruct, "tol", &(prms->tol))) return 0;
     if (!convert_struct_logical_field_to_uint32(entryStruct, "silent", &(prms->verbose), 1)) return 0;
     if (!convert_struct_logical_field_to_uint32(entryStruct, "remove_empty", &(prms->remove_empty), 0)) return 0;
+    if (!convert_struct_field_to_initialization_params(entryStruct, "initprms", &(prms->initprms))) return 0;
 
     omp_set_num_threads(no_cores);
 
@@ -373,6 +459,25 @@ uint32_t read_optional_params(struct kmeans_params * prms, const mxArray *entryS
     
     convert_struct_field_to_cdict(entryStruct,"additional_params", prms, CONVERSION_NUMERIC);
     convert_struct_field_to_cdict(entryStruct,"info", prms, CONVERSION_STRING);
+
+    if (prms->init_id != KMEANS_INIT_PARAMS && prms->initprms != NULL) {
+        mexPrintf("Overwriting chosen init strategy '%s' since initprms were supplied!", KMEANS_INIT_NAMES[prms->init_id]);
+        prms->init_id = KMEANS_INIT_PARAMS;
+    }
+
+    if (prms->init_id == KMEANS_INIT_PARAMS) {
+        prms->no_clusters = 0;
+        for (ui = 0; ui < prms->initprms->len_assignments; ui++) {
+            if (prms->no_clusters < prms->initprms->assignments[ui]) {
+                prms->no_clusters = prms->initprms->assignments[ui];
+            }
+        }
+        prms->no_clusters += 1;
+    }
+
+    if (prms->no_clusters < prms->initprms->len_initial_cluster_samples) {
+        prms->no_clusters = prms->initprms->len_initial_cluster_samples;
+    }
 
     return 1;
 }

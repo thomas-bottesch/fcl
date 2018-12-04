@@ -3,11 +3,12 @@
 #include "../../utils/matrix/csr_matrix/csr_assign.h"
 #include <stdlib.h>
 #include "../../utils/fcl_logging.h"
+#include "../../algorithms/kmeans/kmeans_utils.h"
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, 
     const mxArray *prhs[]) {
 
-    struct csr_matrix *clusters;        // will hold cluster centers
+    struct kmeans_result *res;        // will hold cluster centers
     struct csr_matrix *input_dataset;
     uint64_t num_clusters_out;      // the final number of clusters (could be less than k)
     uint64_t nnz_out;               // the final number of nonzeros;
@@ -23,7 +24,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
 
     memset(&assign_res, 0, sizeof(struct assign_result));
     prms = NULL;
-    clusters = NULL;
+    res = NULL;
     input_dataset = NULL;
 
     // Check if right number of parameters
@@ -44,7 +45,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
                                          , prhs[1]
                                          , nrhs == 3 ? prhs[2] : NULL
                                          , &prms
-                                         , &clusters
+                                         , &res
                                          , &input_dataset);
     if (!fitted_successfully || prms->stop) goto end;
     if (prms->verbose) {
@@ -52,7 +53,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
     }
 
     /* assign */
-    assign_res = assign(input_dataset, clusters, &(prms->stop));
+    assign_res = assign(input_dataset, res->clusters, &(prms->stop));
 
     if (prms->verbose) {
         LOG_INFO("Kmeans predict (assign) finished.");
@@ -63,8 +64,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
 
     // output
     if (nlhs >= 2) {
-        num_clusters_out = clusters->sample_count;
-        nnz_out = clusters->pointers[num_clusters_out];
+        num_clusters_out = res->clusters->sample_count;
+        nnz_out = res->clusters->pointers[num_clusters_out];
 
         /* check if the resulting sizes fit with the output size */
         if (num_clusters_out <= max_mwsize_value
@@ -77,7 +78,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
             X_out = mxGetPr(plhs[1]);
 
             // convert back to from matlab csc format
-            convert_to_matlab_csc_matrix(&clusters, X_out,irs_out,jcs_out,num_clusters_out,nnz_out);
+            convert_to_matlab_csc_matrix(&res->clusters, X_out,irs_out,jcs_out,num_clusters_out,nnz_out);
         } else {
             LOG_ERROR("Error. Resulting cluster matrix has a size which is too large to be handled by your matlab installation!");
             goto end;
@@ -87,7 +88,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
     if (nlhs >= 3) {
         VALUE_TYPE* arr;
         uint64_t i;
-        plhs[2] = mxCreateNumericMatrix(clusters->sample_count, 1, mxDOUBLE_CLASS, mxREAL);
+        plhs[2] = mxCreateNumericMatrix(res->clusters->sample_count, 1, mxDOUBLE_CLASS, mxREAL);
         arr = (VALUE_TYPE*) mxGetData(plhs[2]);
         for (i = 0; i < assign_res.len_assignments; i++) {
             arr[assign_res.assignments[i]] += assign_res.distances[i];
@@ -105,9 +106,9 @@ end:
         free_null(prms);
     }
 
-    if (clusters) {
-        free_csr_matrix(clusters);
-        free_null(clusters);
+    if (res) {
+        free_kmeans_result(res);
+        res = NULL;
     }
 
     if (input_dataset) {

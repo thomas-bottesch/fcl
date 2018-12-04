@@ -191,6 +191,9 @@ cdef class _kmeans_c:
       for i in range(kmeans_result.initprms.len_initial_cluster_samples):
         python_res['initialization_params'][TOKEN_INITIAL_CLUSTER_SAMPLES][i] = int(kmeans_result.initprms.initial_cluster_samples[i])
       
+      free_init_params(kmeans_result.initprms)
+      free(kmeans_result.initprms)
+      free(kmeans_result)
       return python_res      
 
     def stop(self):
