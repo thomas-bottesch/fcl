@@ -28,11 +28,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
     input_dataset = NULL;
 
     // Check if right number of parameters
-    if (!(nlhs >= 1 && nlhs <= 4) || nrhs <2 || nrhs >3) {
+    if (!(nlhs >= 1 && nlhs <= 5) || nrhs <2 || nrhs >3) {
         LOG_INFO("Wrong input. Usage: [IDX] = fcl_kmeans(X, k, opts).");
         LOG_INFO("Or: [IDX, C] = fcl_kmeans(X, k, opts).");
         LOG_INFO("Or: [IDX, C, SUMD] = fcl_kmeans(X, k, opts).");
         LOG_INFO("Or: [IDX, C, SUMD, T] = fcl_kmeans(X, k, opts).");
+        LOG_INFO("Or: [IDX, C, SUMD, T, INITPRMS] = fcl_kmeans(X, k, opts).");
         goto end;
     }
 
@@ -59,8 +60,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
         LOG_INFO("Kmeans predict (assign) finished.");
     }
 
-    plhs[0] = convert_uint64_array_to_mxarray(assign_res.assignments
-                                               , assign_res.len_assignments);
+    plhs[0] = convert_uint64_array_to_mxarray(assign_res.assignments,
+                                              assign_res.len_assignments);
 
     // output
     if (nlhs >= 2) {
@@ -97,6 +98,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs,
 
     if (nlhs >= 4) {
         plhs[3] = create_struct(&(prms->tr));
+    }
+
+    if (nlhs >= 5) {
+        plhs[4] = create_init_params_struct(res->initprms);
     }
 
 end:

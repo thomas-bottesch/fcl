@@ -288,6 +288,10 @@ usage_kmeans_params:
             }
         }
         prms.no_clusters += 1;
+
+        if (prms.no_clusters < prms.initprms->len_initial_cluster_samples) {
+            prms.no_clusters = prms.initprms->len_initial_cluster_samples;
+        }
     }
 
     if (model_file->filename[0] != NULL) {

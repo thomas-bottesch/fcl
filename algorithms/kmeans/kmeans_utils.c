@@ -108,7 +108,7 @@ void preinitialize_kmeans_init_params(struct csr_matrix *samples,
     }
 
     if (prms->initprms->len_assignments != samples->sample_count) {
-        if (prms->verbose) LOG_ERROR("Init assignments have invalid length");
+        if (prms->verbose) LOG_ERROR("Init assignments have invalid length %" PRINTF_INT64_MODIFIER "u != %" PRINTF_INT64_MODIFIER "u", prms->initprms->len_assignments, samples->sample_count);
         goto error_invalid_init_data;
     }
 
@@ -122,6 +122,10 @@ void preinitialize_kmeans_init_params(struct csr_matrix *samples,
     if (no_clusters > prms->initprms->len_initial_cluster_samples) {
         if (prms->verbose) LOG_ERROR("no_clusters > len_initial_cluster_samples");
         goto error_invalid_init_data;
+    }
+
+    if (prms->initprms->len_initial_cluster_samples > no_clusters) {
+        no_clusters = prms->initprms->len_initial_cluster_samples;
     }
 
     for (i = 0; i < prms->initprms->len_initial_cluster_samples; i++) {
