@@ -200,7 +200,7 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
                                             , "additional_params", "kmpp_bv_annz", 0);
 
     use_triangle_inequality = d_get_subint_default(&(prms->tr)
-                            , "additional_params", "kmpp_use_triangle_inequality", 1);
+                            , "additional_params", "kmpp_use_triangle_inequality", 0);
 
     if (desired_bv_annz > 0) {
         if (prms->verbose) LOG_INFO("kmeans++ block vectors activated with annz: %.3f", desired_bv_annz);

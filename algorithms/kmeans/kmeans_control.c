@@ -6,6 +6,7 @@
 #include "pca_kmeans.h"
 #include "pca_elkan_kmeans.h"
 #include "pca_yinyang.h"
+#include "kmeanspp.h"
 
 const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
 										  , "bv_kmeans"
@@ -20,7 +21,9 @@ const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
 										  , "bv_elkan_ondemand"
 	                                      , "pca_elkan"
 	                                      , "pca_yinyang"
-										  , "pca_kmeans"};
+										  , "pca_kmeans"
+										  , "kmeans++"
+										  , "bv_kmeans++"};
 
 const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "k-means optimized (with block vectors)"
@@ -35,7 +38,9 @@ const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "triangle inequality optimized kmeans (with block vectors calculated on demand, a bit slower but needs a lot less RAM)"
 											  , "triangle inequality optimized kmeans with pca lower bounds"
 											  , "yinyang k-means with pca lower bounds"
-											  , "k-means with pca lower bounds"};
+											  , "k-means with pca lower bounds"
+											  , "kmeans++ as full clustering strategy (not just init)"
+											  , "kmeans++ (with block vectors)"};
 
 kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmeans
 														  , bv_kmeans
@@ -50,7 +55,9 @@ kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmea
                                                           , elkan_kmeans
                                                           , pca_elkan_kmeans
                                                           , pca_yinyang_kmeans
-                                                          , pca_kmeans};
+                                                          , pca_kmeans
+                                                          , bv_kmeanspp
+                                                          , bv_kmeanspp};
 
 const char *KMEANS_INIT_NAMES[NO_KMEANS_INITS] = {"random"
                                                   , "kmeans++"
