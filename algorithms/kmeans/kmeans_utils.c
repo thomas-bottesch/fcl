@@ -33,13 +33,16 @@ kmeans_preinit_function KMEANS_PREINIT_FUNCTIONS[NO_KMEANS_INITS] \
 
 void get_kmeanspp_assigns(struct csr_matrix *mtrx
                           , struct csr_matrix *blockvectors_mtrx
+                          , struct sparse_vector* pca_projection_samples
                           , VALUE_TYPE *sparse_vector_lengths
+                          , VALUE_TYPE *pca_sparse_vector_lengths
                           , uint64_t no_clusters
                           , uint64_t *cluster_counts
                           , uint64_t *cluster_assignments
                           , VALUE_TYPE *cluster_distances
                           , uint32_t* seed
                           , uint64_t use_triangle_inequality
+                          , uint64_t *initial_cluster_samples
                           , uint32_t verbose
                           , struct cdict* tr
                           , uint32_t* stop);
@@ -191,16 +194,34 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
     VALUE_TYPE *values;
     uint64_t nnz;
     uint64_t use_triangle_inequality;
+
+    /* Block vector variables */
     uint64_t block_vectors_dim;         /* size of block vectors */
     VALUE_TYPE desired_bv_annz;         /* desired size of the block vectors */
     struct csr_matrix block_vectors_samples;  /* block vector matrix of samples */
 
+    /* PCA variables */
+    uint64_t use_pca;                 /* desired size of the block vectors */
+    VALUE_TYPE* vector_lengths_pca_samples;
+    struct sparse_vector* pca_projection_samples;
+
+    pca_projection_samples = NULL;
+    vector_lengths_pca_samples = NULL;
     block_vectors_samples.sample_count = 0;
     desired_bv_annz = d_get_subfloat_default(&(prms->tr)
                                             , "additional_params", "kmpp_bv_annz", 0);
 
     use_triangle_inequality = d_get_subint_default(&(prms->tr)
                             , "additional_params", "kmpp_use_triangle_inequality", 0);
+
+    use_pca = d_get_subint_default(&(prms->tr)
+                            , "additional_params", "kmpp_use_pca", 0);
+
+    if (use_pca && prms->ext_vects != NULL) {
+        if (prms->verbose) LOG_INFO("kmeans++ pca activated");
+        pca_projection_samples = matrix_dot(ctx->samples, prms->ext_vects);
+        calculate_vector_list_lengths(pca_projection_samples, ctx->samples->sample_count, &vector_lengths_pca_samples);
+    }
 
     if (desired_bv_annz > 0) {
         if (prms->verbose) LOG_INFO("kmeans++ block vectors activated with annz: %.3f", desired_bv_annz);
@@ -212,13 +233,16 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
 
     get_kmeanspp_assigns(ctx->samples
                          , &block_vectors_samples
+                         , pca_projection_samples
                          , ctx->vector_lengths_samples
+                         , vector_lengths_pca_samples
                          , prms->no_clusters
                          , ctx->cluster_counts
                          , ctx->cluster_assignments
                          , ctx->cluster_distances
                          , &(prms->seed)
                          , use_triangle_inequality
+                         , ctx->initial_cluster_samples
                          , prms->verbose
                          , prms->tr
                          , &(prms->stop));
@@ -226,7 +250,11 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
     if (desired_bv_annz > 0) {
         free_csr_matrix(&block_vectors_samples);
     }
-
+    if (use_pca && prms->ext_vects != NULL) {
+        free_vector_list(pca_projection_samples, ctx->samples->sample_count);
+        free(vector_lengths_pca_samples);
+        free(pca_projection_samples);
+    }
     for (i = 0; i < ctx->samples->sample_count; i++) {
         keys = ctx->samples->keys + ctx->samples->pointers[i];
         values = ctx->samples->values + ctx->samples->pointers[i];
@@ -247,20 +275,25 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
 
 void get_kmeanspp_assigns(struct csr_matrix *mtrx
                           , struct csr_matrix *blockvectors_mtrx
+                          , struct sparse_vector* pca_projection_samples
                           , VALUE_TYPE *sparse_vector_lengths
+                          , VALUE_TYPE *pca_sparse_vector_lengths
                           , uint64_t no_clusters
                           , uint64_t *cluster_counts
                           , uint64_t *cluster_assignments
                           , VALUE_TYPE *cluster_distances
                           , uint32_t* seed
                           , uint64_t use_triangle_inequality
+                          , uint64_t *initial_cluster_samples
                           , uint32_t verbose
                           , struct cdict* tr
                           , uint32_t* stop) {
 
-    uint64_t  no_clusters_so_far, i, j, calcs_skipped_tr, calcs_skipped_bv, calcs_skipped_is_cluster;
-    uint64_t* clusters;
+    uint64_t  no_clusters_so_far, i, j, calcs_skipped_tr, calcs_skipped_bv, calcs_skipped_pca, calcs_skipped_is_cluster;
     VALUE_TYPE rand_max;
+    VALUE_TYPE approximated_full_distance_calcs_bv;
+    VALUE_TYPE approximated_full_distance_calcs_pca;
+    uint64_t mtrx_annz;
     uint64_t calcs_needed;
     uint64_t *is_cluster;
     VALUE_TYPE min_distances_cluster_new_cluster;
@@ -268,16 +301,18 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
     no_clusters_so_far = 0;
     calcs_needed = 0;
     rand_max = RAND_MAX;
+    approximated_full_distance_calcs_bv = 0;
+    approximated_full_distance_calcs_pca = 0;
     calcs_skipped_tr = 0;
     calcs_skipped_bv = 0;
+    calcs_skipped_pca = 0;
     calcs_skipped_is_cluster = 0;
     start = time(NULL);
-    clusters = (uint64_t*) calloc(no_clusters, sizeof(uint64_t));
 
     is_cluster = (uint64_t*) calloc(mtrx->sample_count, sizeof(uint64_t));
 
     /* choose the first sample randomly from all samples */
-    clusters[no_clusters_so_far] = rand_r(seed) % mtrx->sample_count;
+    initial_cluster_samples[no_clusters_so_far] = rand_r(seed) % mtrx->sample_count;
     no_clusters_so_far += 1;
 
     /* initialize all distances with infinity */
@@ -296,7 +331,7 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
         }
 
         /* no need to iterate over all clusters, only the recently added cluster is new info */
-        cluster_id = clusters[no_clusters_so_far - 1];
+        cluster_id = initial_cluster_samples[no_clusters_so_far - 1];
 
         #pragma omp parallel for schedule(dynamic, 1000)
         for (i = 0; i < mtrx->sample_count; i++) {
@@ -335,6 +370,21 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
 
                     if (dist >= cluster_distances[sample_id]) {
                         calcs_skipped_bv += 1;
+                        continue;
+                    }
+                }
+
+                if (pca_projection_samples != NULL) {
+                    dist = euclid_vector(pca_projection_samples[sample_id].keys
+                                         , pca_projection_samples[sample_id].values
+                                         , pca_projection_samples[sample_id].nnz
+                                         , pca_projection_samples[cluster_id].keys
+                                         , pca_projection_samples[cluster_id].values
+                                         , pca_projection_samples[cluster_id].nnz
+                                         , pca_sparse_vector_lengths[sample_id]
+                                         , pca_sparse_vector_lengths[cluster_id]);
+                    if (dist >= cluster_distances[sample_id]) {
+                        calcs_skipped_pca += 1;
                         continue;
                     }
                 }
@@ -379,13 +429,13 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
         }
 
         if (j == mtrx->sample_count) {
-            clusters[no_clusters_so_far] = rand_r(seed) % mtrx->sample_count;
+            initial_cluster_samples[no_clusters_so_far] = rand_r(seed) % mtrx->sample_count;
         } else {
-            clusters[no_clusters_so_far] = j;
+            initial_cluster_samples[no_clusters_so_far] = j;
         }
 
-        is_cluster[clusters[no_clusters_so_far]] = 1;
-        min_distances_cluster_new_cluster = cluster_distances[clusters[no_clusters_so_far]] / 2;
+        is_cluster[initial_cluster_samples[no_clusters_so_far]] = 1;
+        min_distances_cluster_new_cluster = cluster_distances[initial_cluster_samples[no_clusters_so_far]] / 2;
 
         no_clusters_so_far++;
     }
@@ -394,29 +444,57 @@ void get_kmeanspp_assigns(struct csr_matrix *mtrx
     if (verbose) LOG_INFO("kmeans++ calcs_needed %" PRINTF_INT64_MODIFIER "u/%" PRINTF_INT64_MODIFIER "u"
                           , calcs_needed, (mtrx->sample_count * no_clusters) - calcs_skipped_is_cluster);
 
+    mtrx_annz = mtrx->pointers[mtrx->sample_count] / mtrx->sample_count;
+
     d_add_subint(&tr, "kmeans++", "block_vectors_enabled", blockvectors_mtrx->sample_count > 0);
     if (blockvectors_mtrx->sample_count > 0) {
         VALUE_TYPE block_vectors_annz = blockvectors_mtrx->pointers[blockvectors_mtrx->sample_count] / blockvectors_mtrx->sample_count;
-        uint64_t mtrx_annz = mtrx->pointers[mtrx->sample_count] / mtrx->sample_count;
 
         d_add_subint(&tr, "kmeans++", "block_vectors_dim", blockvectors_mtrx->dim);
         d_add_subint(&tr, "kmeans++", "block_vectors_annz", block_vectors_annz);
         d_add_subfloat(&tr, "kmeans++", "block_vectors_relative_annz", block_vectors_annz / mtrx_annz);
-
+        approximated_full_distance_calcs_bv = (block_vectors_annz / mtrx_annz) * (calcs_needed + calcs_skipped_bv);
         /* Use (block_vectors_annz / mtrx_annz) * (calcs_needed + calcs_skipped_bv)
          * to translate the number of block_vector euclidean distance calculations
          * into full euclidean distance calculations. Then add the approximated
          * full calculations and the done full calculations to get the overall
          * approximated full calculations.
          */
-        d_add_subint(&tr, "kmeans++", "approximated_full_distance_calcs"
-                     , ((block_vectors_annz / mtrx_annz) * (calcs_needed + calcs_skipped_bv) + calcs_needed));
     }
+
+    d_add_subint(&tr, "kmeans++", "pca_enabled", pca_projection_samples != NULL);
+    if (pca_projection_samples != NULL) {
+        VALUE_TYPE pca_annz;
+        KEY_TYPE max_sample_key;
+        uint64_t pca_dim = 0;
+        pca_annz = 0;
+        for (i = 0; i < mtrx->sample_count; i++) {
+            pca_annz += pca_projection_samples[i].nnz;
+            if (pca_projection_samples[i].nnz > 0) {
+                max_sample_key = pca_projection_samples[i].keys[pca_projection_samples[i].nnz - 1];
+                if (max_sample_key > pca_dim) {
+                    pca_dim = max_sample_key;
+                }
+            }
+        }
+        pca_dim += 1;
+        pca_annz = pca_annz / mtrx->sample_count;
+
+        d_add_subint(&tr, "kmeans++", "pca_dim", pca_dim);
+        d_add_subint(&tr, "kmeans++", "pca_annz", pca_annz);
+        d_add_subfloat(&tr, "kmeans++", "pca_relative_annz", pca_annz / mtrx_annz);
+        approximated_full_distance_calcs_pca = (pca_annz / mtrx_annz) * (calcs_needed + calcs_skipped_pca);
+    }
+
+    if (pca_projection_samples != NULL || blockvectors_mtrx->sample_count > 0) {
+        d_add_subint(&tr, "kmeans++", "approximated_full_distance_calcs"
+                     , (approximated_full_distance_calcs_bv + approximated_full_distance_calcs_pca + calcs_needed));
+    }
+
     d_add_subint(&tr, "kmeans++", "calculations_needed", calcs_needed);
     d_add_subint(&tr, "kmeans++", "calculations_needed_naive", (mtrx->sample_count * no_clusters) - calcs_skipped_is_cluster);
 
     free(is_cluster);
-    free(clusters);
 }
 
 void pre_process_iteration(struct general_kmeans_context* ctx) {
