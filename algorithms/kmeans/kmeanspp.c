@@ -27,6 +27,13 @@ struct kmeans_result* bv_kmeanspp(struct csr_matrix* samples, struct kmeans_para
                                                       "additional_params",
                                                       "bv_annz",
                                                       0.3));
+    } else if (prms->kmeans_algorithm_id == ALGORITHM_PCA_KMEANSPP) {
+        if (prms->ext_vects == NULL) {
+            if (prms->verbose) LOG_INFO("pca_kmeans++ was requested but no external vectors were supplied. Ignoring the pca optimizations!");
+        }
+
+
+        d_add_subint(&(prms->tr), "additional_params", "kmpp_use_pca", prms->ext_vects != NULL);
     }
 
     /* kmeans++ is done inside the initialize_general_context */

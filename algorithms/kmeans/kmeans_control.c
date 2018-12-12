@@ -23,7 +23,8 @@ const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
 	                                      , "pca_yinyang"
 										  , "pca_kmeans"
 										  , "kmeans++"
-										  , "bv_kmeans++"};
+										  , "bv_kmeans++"
+										  , "pca_kmeans++"};
 
 const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "k-means optimized (with block vectors)"
@@ -40,7 +41,8 @@ const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "yinyang k-means with pca lower bounds"
 											  , "k-means with pca lower bounds"
 											  , "kmeans++ as full clustering strategy (not just init)"
-											  , "kmeans++ (with block vectors)"};
+											  , "kmeans++ (with block vectors)"
+											  , "kmeans++ (with pca lower bounds)"};
 
 kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmeans
 														  , bv_kmeans
@@ -56,6 +58,7 @@ kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmea
                                                           , pca_elkan_kmeans
                                                           , pca_yinyang_kmeans
                                                           , pca_kmeans
+                                                          , bv_kmeanspp
                                                           , bv_kmeanspp
                                                           , bv_kmeanspp};
 
