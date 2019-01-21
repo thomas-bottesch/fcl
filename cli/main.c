@@ -82,8 +82,6 @@ int main (int argc, char *argv[]) {
 
     if (clustering_task == CLUSTERING_TASK_KMEANS) {
         kmeans_task(argc - 1, argv + 1);
-    } else if (clustering_task == CLUSTERING_TASK_KMEANSPP) {
-        //kmeanspp_task(argc - 1, argv + 1);
     }
 
     return 0;

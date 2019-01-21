@@ -2,6 +2,7 @@
 #include "kmeans.h"
 #include "yinyang.h"
 #include "minibatch_kmeans.h"
+#include "pca_minibatch_kmeans.h"
 #include "elkan_kmeans.h"
 #include "pca_kmeans.h"
 #include "pca_elkan_kmeans.h"
@@ -16,6 +17,7 @@ const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
                                           , "bv_yinyang_ondemand"
 										  , "minibatch_kmeans"
 										  , "bv_minibatch_kmeans"
+										  , "pca_minibatch_kmeans"
 										  , "elkan"
 										  , "bv_elkan"
 										  , "bv_elkan_ondemand"
@@ -34,6 +36,7 @@ const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
                                               , "yinyang k-means (with block vectors calculated on demand, a bit slower but needs a lot less RAM)"
 											  , "minibatch k-means"
 											  , "minibatch k-means (with block vectors)"
+											  , "minibatch k-means (with pca lower bounds)"
 											  , "triangle inequality optimized kmeans"
 											  , "triangle inequality optimized kmeans (with block vectors)"
 											  , "triangle inequality optimized kmeans (with block vectors calculated on demand, a bit slower but needs a lot less RAM)"
@@ -52,6 +55,7 @@ kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmea
 														  , yinyang_kmeans
 														  , bv_minibatch_kmeans
 														  , bv_minibatch_kmeans
+														  , pca_minibatch_kmeans
                                                           , elkan_kmeans
                                                           , elkan_kmeans
                                                           , elkan_kmeans

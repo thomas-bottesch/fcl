@@ -718,6 +718,9 @@ struct kmeans_result* create_kmeans_result(struct kmeans_params *prms
             if (prms->verbose) LOG_INFO("Remaining clusters after deleting empty ones = %lu"
                                       , res->clusters->sample_count);
         }
+        d_add_float(&(prms->tr), "wcssd_kmeans_with_remove_empty"
+                    , sum_value_array(assign_res.distances, assign_res.len_assignments));
+
         free_assign_result(&assign_res);
         free_null(map);
         d_add_float(&(prms->tr), "duration_kmeans_with_remove_empty"

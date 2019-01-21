@@ -3,7 +3,5 @@
 
 #include "cli_tasks.h"
 
-const char *CLI_ALGORITHM_NAMES[NO_CLI_ALGOS] = {"kmeans",
-                                                 "kmeans++"};
-cli_function CLI_ALGORITHM_FUNCTIONS[NO_CLI_ALGOS] = {kmeans_task,
-                                                      kmeanspp_task};
+const char *CLI_ALGORITHM_NAMES[NO_CLI_ALGOS] = {"kmeans"};
+cli_function CLI_ALGORITHM_FUNCTIONS[NO_CLI_ALGOS] = {kmeans_task};

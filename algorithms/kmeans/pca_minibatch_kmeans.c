@@ -13,26 +13,26 @@
 #include <float.h>
 #include <math.h>
 
-struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
+struct kmeans_result* pca_minibatch_kmeans(struct csr_matrix* samples
                                               , struct kmeans_params *prms) {
 
 
     uint32_t i;
     uint64_t j;
-    uint64_t block_vectors_dim;         /* size of block vectors */
     uint64_t samples_per_batch;
-    uint64_t keys_per_block;
     uint32_t max_not_improved_counter;
     uint32_t disable_optimizations;
-	VALUE_TYPE desired_bv_annz;         /* desired size of the block vectors */
 	uint32_t* chosen_sample_map;
+    struct sparse_vector* pca_projection_samples;  /* projection matrix of samples */
+    struct sparse_vector* pca_projection_clusters; /* projection matrix of clusters */
+
 	struct convergence_context conv_ctx;
 	
-    struct sparse_vector* block_vectors_clusters; /* block vector matrix of clusters */
+    VALUE_TYPE* vector_lengths_pca_samples;
+    VALUE_TYPE* vector_lengths_pca_clusters;
     struct kmeans_result* res;
     struct general_kmeans_context ctx;
 
-    disable_optimizations = prms->kmeans_algorithm_id == ALGORITHM_MINIBATCH_KMEANS;
     initialize_general_context(prms, &ctx, samples);
     conv_ctx.initialized = 0;
     max_not_improved_counter = 20;
@@ -45,50 +45,47 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
     /* reset cluster counts since minibatch kmeans handels them differently */
     for (i = 0; i < ctx.no_clusters; i++) ctx.cluster_counts[i] = 0;
 
-    desired_bv_annz = d_get_subfloat_default(&(prms->tr)
-                                            , "additional_params", "bv_annz", 0.3);
-    block_vectors_dim = 0;
-    keys_per_block = 0;
     chosen_sample_map = NULL;
 	/* samples_per_batch = ctx.samples->sample_count; */
 
     samples_per_batch = d_get_subint_default(&(prms->tr)
                                             , "additional_params", "samples_per_batch", ctx.samples->sample_count * 0.05);
 
-
+    disable_optimizations = prms->ext_vects == NULL;
 	
     if (!disable_optimizations) {
-        /* search for a suitable size of the block vectors for the input samples and create them */
-        block_vectors_dim = search_block_vector_size(ctx.samples, desired_bv_annz, prms->verbose);
+        /* create pca projections for the samples */
+        pca_projection_samples = matrix_dot(samples, prms->ext_vects);
+        calculate_vector_list_lengths(pca_projection_samples, samples->sample_count, &vector_lengths_pca_samples);
 
-        keys_per_block = ctx.samples->dim / block_vectors_dim;
-        if (ctx.samples->dim % block_vectors_dim > 0) keys_per_block++;
+        /* create pca projections for the clusters */
+        pca_projection_clusters = sparse_vectors_matrix_dot(ctx.cluster_vectors,
+                                                            ctx.no_clusters,
+                                                            prms->ext_vects);
 
-        /* create block vectors for the clusters */
-        create_block_vectors_list_from_vector_list(ctx.cluster_vectors
-                                                        , block_vectors_dim
-                                                        , ctx.no_clusters
-                                                        , ctx.samples->dim
-                                                        , &block_vectors_clusters);
-
+        vector_lengths_pca_clusters = NULL;
     }
 
     create_chosen_sample_map(&chosen_sample_map, ctx.samples->sample_count, samples_per_batch, &(prms->seed));
 
     for (i = 0; i < prms->iteration_limit && !ctx.converged && !prms->stop; i++) {
         /* track how many blockvector calculations were made / saved */
-        uint64_t saved_calculations_bv, saved_calculations_prev_cluster;
-        uint64_t done_blockvector_calcs, saved_calculations_cauchy;
+        uint64_t saved_calculations_pca, saved_calculations_prev_cluster;
+        uint64_t done_pca_calcs, saved_calculations_cauchy;
 		
-
         /* reset all calculation counters */
-        done_blockvector_calcs = 0;
+        done_pca_calcs = 0;
         saved_calculations_cauchy = 0;
         saved_calculations_prev_cluster = 0;
-        saved_calculations_bv = 0;
+        saved_calculations_pca = 0;
 
         /* initialize data needed for the iteration */
         pre_process_iteration(&ctx);
+
+        if (!disable_optimizations) {
+            free(vector_lengths_pca_clusters);
+            calculate_vector_list_lengths(pca_projection_clusters, ctx.no_clusters, &vector_lengths_pca_clusters);
+        }
 
         #pragma omp parallel for schedule(dynamic, 1000)
         for (j = 0; j < ctx.samples->sample_count; j++) {
@@ -96,10 +93,6 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
 
             VALUE_TYPE dist;
             uint64_t cluster_id, sample_id;
-            struct sparse_vector bv;
-            bv.nnz = 0;
-            bv.keys = NULL;
-            bv.values = NULL;
 
             if (!prms->stop && chosen_sample_map[j]) {
                 sample_id = j;
@@ -123,28 +116,22 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
                             /* approximated distance is larger than current best distance. skip full distance calculation */
                             saved_calculations_cauchy += 1;
                             goto end;
-                         }
-
-                        if (bv.keys == NULL) {
-                            create_block_vector_from_csr_matrix_vector(ctx.samples
-                                                                       , sample_id
-                                                                       , keys_per_block
-                                                                       , &bv);
                         }
 
-                        /* evaluate block vector approximation. */
-                        dist = euclid_vector(bv.keys, bv.values, bv.nnz
-                                             , block_vectors_clusters[cluster_id].keys
-                                             , block_vectors_clusters[cluster_id].values
-                                             , block_vectors_clusters[cluster_id].nnz
-                                             , ctx.vector_lengths_samples[sample_id]
-                                             , ctx.vector_lengths_clusters[cluster_id]);
+                        dist = euclid_vector(pca_projection_samples[sample_id].keys
+                                             , pca_projection_samples[sample_id].values
+                                             , pca_projection_samples[sample_id].nnz
+                                             , pca_projection_clusters[cluster_id].keys
+                                             , pca_projection_clusters[cluster_id].values
+                                             , pca_projection_clusters[cluster_id].nnz
+                                             , vector_lengths_pca_samples[sample_id]
+                                             , vector_lengths_pca_clusters[cluster_id]);
 
-                        done_blockvector_calcs += 1;
+                        done_pca_calcs += 1;
 
                         if (dist >= ctx.cluster_distances[sample_id] && fabs(dist - ctx.cluster_distances[sample_id]) >= 1e-6) {
                             /* approximated distance is larger than current best distance. skip full distance calculation */
-                            saved_calculations_bv += 1;
+                            saved_calculations_pca += 1;
                             goto end;
                         }
                     }
@@ -163,11 +150,6 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
                     end:;
                 }
             }
-
-            if (!disable_optimizations) {
-                free_null(bv.keys);
-                free_null(bv.values);
-            }
         }
 
         check_signals(&(prms->stop));
@@ -184,16 +166,15 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
         create_chosen_sample_map(&chosen_sample_map, ctx.samples->sample_count, samples_per_batch, &(prms->seed));
 
         if (!disable_optimizations) {
-            /* update only block vectors for cluster that shifted */
-            update_changed_blockvectors(ctx.cluster_vectors
-                                        , block_vectors_dim
-                                        , ctx.no_clusters
-                                        , ctx.samples->dim
-                                        , ctx.clusters_not_changed
-                                        , block_vectors_clusters);
+            /* update only projections for cluster that shifted */
+            update_dot_products(ctx.cluster_vectors,
+                                ctx.no_clusters,
+                                prms->ext_vects,
+                                ctx.clusters_not_changed,
+                                pca_projection_clusters);
 
-            d_add_ilist(&(prms->tr), "iteration_bv_calcs", done_blockvector_calcs);
-            d_add_ilist(&(prms->tr), "iteration_bv_calcs_success", saved_calculations_bv + saved_calculations_cauchy);
+            d_add_ilist(&(prms->tr), "iteration_pca_calcs", done_pca_calcs);
+            d_add_ilist(&(prms->tr), "iteration_pca_calcs_success", saved_calculations_pca + saved_calculations_cauchy);
         }
 
         #pragma omp parallel for
@@ -218,12 +199,12 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
 
         print_iteration_summary(&ctx, prms, i);
 
-        /* print block vector statistics */
-        if (prms->verbose) LOG_INFO("BV statistics c:%" PRINTF_INT64_MODIFIER "u/b:%" PRINTF_INT64_MODIFIER "u/db:%" PRINTF_INT64_MODIFIER "u/pc:%" PRINTF_INT64_MODIFIER "u"
-                , saved_calculations_cauchy
-                , saved_calculations_bv
-                , done_blockvector_calcs
-                , saved_calculations_prev_cluster);
+        if (!disable_optimizations) {
+            /* print projection statistics */
+            if (prms->verbose) LOG_INFO("PCA statistics b:%" PRINTF_INT64_MODIFIER "u/db:%" PRINTF_INT64_MODIFIER "u"
+                    , saved_calculations_pca
+                    , done_pca_calcs);
+        }
     }
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
@@ -232,8 +213,13 @@ struct kmeans_result* bv_minibatch_kmeans(struct csr_matrix* samples
 
     /* cleanup all */
     if (!disable_optimizations) {
-        free_vector_list(block_vectors_clusters, ctx.no_clusters);
-        free(block_vectors_clusters);
+        free_vector_list(pca_projection_samples, samples->sample_count);
+        free(vector_lengths_pca_samples);
+        free(pca_projection_samples);
+
+        free_vector_list(pca_projection_clusters, ctx.no_clusters);
+        free(pca_projection_clusters);
+        free(vector_lengths_pca_clusters);
     }
     free_null(chosen_sample_map);
     free_general_context(&ctx, prms);

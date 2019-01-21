@@ -3,11 +3,9 @@
 
 #include "../utils/pstdint.h"
 #include "kmeans_task.h"
-#include "kmeanspp_task.h"
 
-#define NO_CLI_ALGOS                               UINT32_C(2)
+#define NO_CLI_ALGOS                               UINT32_C(1)
 #define CLUSTERING_TASK_KMEANS                     UINT32_C(0)
-#define CLUSTERING_TASK_KMEANSPP                   UINT32_C(1)
 
 extern const char *CLI_ALGORITHM_NAMES[NO_CLI_ALGOS];
 
