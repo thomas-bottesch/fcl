@@ -1,8 +1,6 @@
 from __future__ import print_function
 import fcl
 import os
-import matplotlib
-import matplotlib.pyplot as plt
 import time
 from os.path import abspath, join, dirname, isfile
 from fcl import kmeans
