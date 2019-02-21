@@ -36,6 +36,9 @@ struct kmeans_result* pca_yinyang_kmeans(struct csr_matrix* samples, struct kmea
     VALUE_TYPE *group_max_drift;
     VALUE_TYPE **lower_bounds;
 
+    pca_projection_clusters = NULL;
+    pca_projection_samples = NULL;
+
     disable_optimizations = (prms->ext_vects == NULL || prms->kmeans_algorithm_id == ALGORITHM_YINYANG);
 
     initialize_general_context(prms, &ctx, samples);

@@ -1,5 +1,6 @@
 #include "vector_list_to_csr.h"
 #include <string.h>
+#include <stdlib.h>
 
 void sparse_vector_list_to_csr_matrix(struct sparse_vector* mtrx
                                       , uint64_t no_vectors

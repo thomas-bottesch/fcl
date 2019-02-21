@@ -33,6 +33,9 @@ struct kmeans_result* pca_minibatch_kmeans(struct csr_matrix* samples
     struct kmeans_result* res;
     struct general_kmeans_context ctx;
 
+    pca_projection_clusters = NULL;
+    pca_projection_samples = NULL;
+
     initialize_general_context(prms, &ctx, samples);
     conv_ctx.initialized = 0;
     max_not_improved_counter = 20;
@@ -70,13 +73,12 @@ struct kmeans_result* pca_minibatch_kmeans(struct csr_matrix* samples
 
     for (i = 0; i < prms->iteration_limit && !ctx.converged && !prms->stop; i++) {
         /* track how many blockvector calculations were made / saved */
-        uint64_t saved_calculations_pca, saved_calculations_prev_cluster;
+        uint64_t saved_calculations_pca;
         uint64_t done_pca_calcs, saved_calculations_cauchy;
 		
         /* reset all calculation counters */
         done_pca_calcs = 0;
         saved_calculations_cauchy = 0;
-        saved_calculations_prev_cluster = 0;
         saved_calculations_pca = 0;
 
         /* initialize data needed for the iteration */

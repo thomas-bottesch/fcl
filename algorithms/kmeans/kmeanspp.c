@@ -12,8 +12,6 @@
 #include <float.h>
 struct kmeans_result* bv_kmeanspp(struct csr_matrix* samples, struct kmeans_params *prms) {
     struct general_kmeans_context ctx;
-    VALUE_TYPE desired_kmppbv_annz;
-    VALUE_TYPE desired_bv_annz;
     struct kmeans_result* res;
     prms->init_id = KMEANS_INIT_KMPP;
 

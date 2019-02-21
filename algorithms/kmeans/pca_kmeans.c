@@ -29,6 +29,9 @@ struct kmeans_result* pca_kmeans(struct csr_matrix* samples, struct kmeans_param
     uint32_t *eligible_for_cluster_no_change_optimization;
     struct general_kmeans_context ctx;
 
+    pca_projection_clusters = NULL;
+    pca_projection_samples = NULL;
+
     initialize_general_context(prms, &ctx, samples);
 
     disable_optimizations = prms->ext_vects == NULL;

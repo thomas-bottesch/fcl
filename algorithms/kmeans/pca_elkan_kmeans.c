@@ -37,6 +37,9 @@ struct kmeans_result* pca_elkan_kmeans(struct csr_matrix* samples, struct kmeans
 
     initialize_general_context(prms, &ctx, samples);
 
+    pca_projection_clusters = NULL;
+    pca_projection_samples = NULL;
+
 	disable_optimizations = (prms->ext_vects == NULL || prms->kmeans_algorithm_id == ALGORITHM_ELKAN_KMEANS);
 	
 	if (disable_optimizations && prms->kmeans_algorithm_id == ALGORITHM_PCA_ELKAN_KMEANS) {
