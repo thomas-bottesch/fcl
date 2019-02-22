@@ -66,7 +66,8 @@ uint32_t add_sample_to_hashmap_minibatch_kmeans(struct keyvaluecount_hash** clus
     }
 
     /*
-     * This for loop does c =
+     * This for loop does c = c + learning_rate * x
+     * which is the same as c = c + x / (cluster_count + 1)
      */
     item_added = 0;
     for (sample_iter = 0; sample_iter  < nnz; sample_iter++) {
