@@ -49,10 +49,25 @@ uint32_t add_sample_to_hashmap_minibatch_kmeans(struct keyvaluecount_hash** clus
 
     struct keyvaluecount_hash *tmp;
 
+    /*
+     * The operation done here is:
+     * learning_rate = 1 / (cluster_count + 1)
+     * c = (1 - learning_rate) * c + leaning_rate * x
+     */
+
+
+    /*
+     * This HASH_ITER does c = (1 - learning_rage) * c
+     * which is the same as c = c - learning_rage * c
+     * which is the same as c = c - (c / (cluster_count + 1))
+     */
     HASH_ITER(hh, clusters_raw[cluster_id], cluster_entry, tmp) {
         cluster_entry->val -= cluster_entry->val / (cluster_count + 1);
     }
 
+    /*
+     * This for loop does c =
+     */
     item_added = 0;
     for (sample_iter = 0; sample_iter  < nnz; sample_iter++) {
         cluster_entry = NULL;
