@@ -8,6 +8,7 @@
 #include "pca_elkan_kmeans.h"
 #include "pca_yinyang.h"
 #include "kmeanspp.h"
+#include "nc_kmeans.h"
 
 const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
 										  , "bv_kmeans"
@@ -26,11 +27,12 @@ const char *KMEANS_ALGORITHM_NAMES[NO_KMEANS_ALGOS] = {"kmeans"
 										  , "pca_kmeans"
 										  , "kmeans++"
 										  , "bv_kmeans++"
-										  , "pca_kmeans++"};
+										  , "pca_kmeans++"
+										  , "nc_kmeans"};
 
 const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
-											  , "k-means optimized (with block vectors)"
-                                              , "k-means optimized (with block vectors calculated on demand, a bit slower but needs a lot less RAM)"
+											  , "k-means optimized (no_change, with block vectors)"
+                                              , "k-means optimized (no_change, with block vectors calculated on demand, a bit slower but needs a lot less RAM)"
 											  , "yinyang k-means"
 											  , "yinyang k-means (with block vectors)"
                                               , "yinyang k-means (with block vectors calculated on demand, a bit slower but needs a lot less RAM)"
@@ -45,7 +47,8 @@ const char *KMEANS_ALGORITHM_DESCRIPTION[NO_KMEANS_ALGOS] = {"standard k-means"
 											  , "k-means with pca lower bounds"
 											  , "kmeans++ as full clustering strategy (not just init)"
 											  , "kmeans++ (with block vectors)"
-											  , "kmeans++ (with pca lower bounds)"};
+											  , "kmeans++ (with pca lower bounds)"
+											  , "no_change kmeans: standard kmeans with optimization avoiding calculations if centers did not change"};
 
 kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmeans
 														  , bv_kmeans
@@ -64,7 +67,8 @@ kmeans_algorithm_function KMEANS_ALGORITHM_FUNCTIONS[NO_KMEANS_ALGOS] = {bv_kmea
                                                           , pca_kmeans
                                                           , bv_kmeanspp
                                                           , bv_kmeanspp
-                                                          , bv_kmeanspp};
+                                                          , bv_kmeanspp
+														  , nc_kmeans};
 
 const char *KMEANS_INIT_NAMES[NO_KMEANS_INITS] = {"random"
                                                   , "kmeans++"

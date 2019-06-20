@@ -4,6 +4,7 @@
 
 #include "../utils/argtable3.h"
 #include "cli_tasks.h"
+#include <string.h>
 
 unsigned int parse_command_line_task(int argc, char *argv[]) {
     struct arg_lit *help = arg_lit0(NULL,"help", "print this help and exit");

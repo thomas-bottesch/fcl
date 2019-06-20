@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "../algorithms/kmeans/kmeans_utils.h"
 #include "../algorithms/kmeans/kmeans_control.h"
 #include "../utils/matrix/csr_matrix/csr_load_matrix.h"
 #include "../utils/matrix/csr_matrix/csr_store_matrix.h"

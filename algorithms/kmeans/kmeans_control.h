@@ -5,7 +5,7 @@
 #ifndef KMEANS_CONTROL_H
 #define KMEANS_CONTROL_H
 
-#define NO_KMEANS_ALGOS                               UINT32_C(18)
+#define NO_KMEANS_ALGOS                               UINT32_C(19)
 #define ALGORITHM_KMEANS                              UINT32_C(0)
 #define ALGORITHM_BV_KMEANS                           UINT32_C(1)
 #define ALGORITHM_BV_KMEANS_ONDEMAND                  UINT32_C(2)
@@ -24,6 +24,7 @@
 #define ALGORITHM_KMEANSPP                            UINT32_C(15)
 #define ALGORITHM_BV_KMEANSPP                         UINT32_C(16)
 #define ALGORITHM_PCA_KMEANSPP                        UINT32_C(17)
+#define ALGORITHM_NC_KMEANS                           UINT32_C(18)
 
 
 #define NO_KMEANS_INITS                      UINT32_C(3)

@@ -51,3 +51,4 @@ octave-workspace
 /.project
 /.pydevproject
 /.eggs/
+/.vscode

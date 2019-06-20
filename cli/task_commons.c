@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "../utils/argtable3.h"
 
 #include "task_commons.h"
