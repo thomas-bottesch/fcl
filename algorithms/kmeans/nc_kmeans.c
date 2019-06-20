@@ -15,9 +15,8 @@ struct kmeans_result* nc_kmeans(struct csr_matrix* samples, struct kmeans_params
     uint32_t i;
     uint64_t j;
     struct kmeans_result* res;
-    uint32_t disable_optimizations;
 
-    /* nc_kmeans: contains all samples which are eligible for the cluster
+    /* contains all samples which are eligible for the cluster
      * no change optimization.
      */
     uint32_t *eligible_for_cluster_no_change_optimization;
