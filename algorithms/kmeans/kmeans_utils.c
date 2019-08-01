@@ -229,6 +229,7 @@ void initialize_kmeans_pp(struct general_kmeans_context* ctx,
                                            , desired_bv_annz
                                            , &block_vectors_samples
                                            , &block_vectors_dim);
+        if (prms->verbose) LOG_INFO("kmeans++ done getting block vector matrix");
     }
 
     get_kmeanspp_assigns(ctx->samples
