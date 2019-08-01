@@ -29,4 +29,5 @@ void convert_to_matlab_csc_matrix(struct csr_matrix **clusters, double * X, mwIn
 mxArray* convert_uint64_array_to_mxarray(uint64_t* arr, uint64_t len);
 mxArray* convert_valuetype_array_to_mxarray(VALUE_TYPE* arr, uint64_t len);
 uint32_t load_dataset(const mxArray* input_data, struct csr_matrix **input_dataset);
+mxArray* create_init_params_struct(struct initialization_params* initprms);
 #endif

@@ -43,7 +43,7 @@ def do_evaluations(dataset_path, dataset_name):
   algorithm_results = {}
   
   # These values generate the official repository plot.
-  #algorithms = ["elkan", "kmeans_optimized", "yinyang", "fast_yinyang", "kmeans"]
+  #algorithms = ["elkan", "bv_kmeans", "yinyang", "bv_yinyang", "kmeans"]
   #clusters = [10, 50, 100, 500, 1000]
   
   # These values are used in order to allow the tests to be more efficient

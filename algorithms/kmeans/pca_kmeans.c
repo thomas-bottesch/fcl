@@ -11,23 +11,26 @@
 #include <unistd.h>
 #include <float.h>
 
-struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct kmeans_result* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint32_t i;
     uint64_t j;
     struct sparse_vector* pca_projection_samples;  /* projection matrix of samples */
     struct sparse_vector* pca_projection_clusters; /* projection matrix of clusters */
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
     uint32_t disable_optimizations;
 
     VALUE_TYPE* vector_lengths_pca_samples;
     VALUE_TYPE* vector_lengths_pca_clusters;
 
-    /* kmeans_optimized: contains all samples which are eligible for the cluster
+    /* pca_kmeans: contains all samples which are eligible for the cluster
      * no change optimization.
      */
     uint32_t *eligible_for_cluster_no_change_optimization;
     struct general_kmeans_context ctx;
+
+    pca_projection_clusters = NULL;
+    pca_projection_samples = NULL;
 
     initialize_general_context(prms, &ctx, samples);
 
@@ -240,7 +243,7 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     if (!disable_optimizations) {
@@ -258,5 +261,5 @@ struct csr_matrix* pca_kmeans(struct csr_matrix* samples, struct kmeans_params *
     free_null(eligible_for_cluster_no_change_optimization);
 
 
-    return resulting_clusters;
+    return res;
 }

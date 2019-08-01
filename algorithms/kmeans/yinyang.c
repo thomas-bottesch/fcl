@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <float.h>
 
-struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
+struct kmeans_result* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_params *prms) {
 
     uint32_t i;
     uint64_t j;
@@ -27,7 +27,7 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
     struct csr_matrix block_vectors_samples;
     struct sparse_vector* block_vectors_clusters; /* block vector matrix of clusters */
     struct general_kmeans_context ctx;
-    struct csr_matrix* resulting_clusters;
+    struct kmeans_result* res;
 
     VALUE_TYPE *distance_clustersold_to_clustersnew;
 
@@ -47,14 +47,14 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
     if (!disable_optimizations) {
         initialize_csr_matrix_zero(&block_vectors_samples);
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG) {
         /* search for a suitable size of the block vectors for the input samples and create them */
         search_samples_block_vectors(prms, ctx.samples, desired_bv_annz
                                      , &block_vectors_samples
                                      , &block_vectors_dim);
         }
 
-        if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG_ONDEMAND) {
+        if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG_ONDEMAND) {
             block_vectors_dim = search_block_vector_size(ctx.samples, desired_bv_annz, prms->verbose);
 
             keys_per_block = ctx.samples->dim / block_vectors_dim;
@@ -141,14 +141,14 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
                             /* block vector optimizations */
 
                             /* check if sqrt( ||s||² + ||c||² - 2*< s_B, c_B > ) >= ctx.cluster_distances[sample_id] */
-                            if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG) {
+                            if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG) {
                                 /* evaluate block vector approximation. */
                                 dist = euclid_vector_list(&block_vectors_samples, sample_id
                                               , block_vectors_clusters, cluster_id
                                               , ctx.vector_lengths_samples
                                               , ctx.vector_lengths_clusters);
                             } else {
-                                /* kmeans_algorithm_id == ALGORITHM_FAST_YINYANG_ONDEMAND */
+                                /* kmeans_algorithm_id == ALGORITHM_BV_YINYANG_ONDEMAND */
                                 if (bv.keys == NULL) {
                                     create_block_vector_from_csr_matrix_vector(ctx.samples
                                                                                , sample_id
@@ -279,14 +279,14 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
                             if (i < 15) {
                                 /* block vector optimizations */
                                 /* check if sqrt( ||s||² + ||c||² - 2*< s_B, c_B > ) >= ctx.cluster_distances[sample_id] */
-                                if (prms->kmeans_algorithm_id == ALGORITHM_FAST_YINYANG) {
+                                if (prms->kmeans_algorithm_id == ALGORITHM_BV_YINYANG) {
                                     /* evaluate block vector approximation. */
                                     dist = euclid_vector_list(&block_vectors_samples, sample_id
                                                   , block_vectors_clusters, cluster_id
                                                   , ctx.vector_lengths_samples
                                                   , ctx.vector_lengths_clusters);
                                 } else {
-                                    /* kmeans_algorithm_id == ALGORITHM_FAST_YINYANG_ONDEMAND */
+                                    /* kmeans_algorithm_id == ALGORITHM_BV_YINYANG_ONDEMAND */
                                     if (bv.keys == NULL) {
                                         create_block_vector_from_csr_matrix_vector(ctx.samples
                                                                                    , sample_id
@@ -402,7 +402,7 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
 
     if (prms->verbose) LOG_INFO("total total_no_calcs = %" PRINTF_INT64_MODIFIER "u", ctx.total_no_calcs);
 
-    resulting_clusters = create_result_clusters(prms, &ctx);
+    res = create_kmeans_result(prms, &ctx);
 
     /* cleanup all */
     if (!disable_optimizations) {
@@ -427,5 +427,5 @@ struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_para
     free_null(lower_bounds);
     free_null(cluster_to_group);
 
-    return resulting_clusters;
+    return res;
 }

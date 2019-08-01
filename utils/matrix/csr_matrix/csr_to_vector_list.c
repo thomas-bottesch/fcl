@@ -8,12 +8,14 @@
 void create_vector_list_random(struct csr_matrix *mtrx
                                  , struct sparse_vector* clusters
                                  , uint64_t no_clusters
-                                 , uint32_t *seed) {
+                                 , uint32_t *seed
+                                 , uint64_t *chosen_elements) {
     uint64_t i, sample_id;
 
     /* calculate number of non zero values */
     for (i = 0; i < no_clusters; i++) {
         sample_id = rand_r(seed) % mtrx->sample_count;
+        if (chosen_elements) chosen_elements[i] = sample_id;
         clusters[i].nnz = mtrx->pointers[sample_id + 1] - mtrx->pointers[sample_id];
         clusters[i].keys = (KEY_TYPE*) calloc(clusters[i].nnz, sizeof(KEY_TYPE));
         clusters[i].values = (VALUE_TYPE*) calloc(clusters[i].nnz, sizeof(VALUE_TYPE));

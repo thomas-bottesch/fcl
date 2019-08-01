@@ -12,31 +12,22 @@ uint32_t fcl_kmeans_fit(const mxArray* input_data
                    , const  mxArray* k
                    , const  mxArray* opts
                    , struct kmeans_params** prms
-                   , struct csr_matrix **clusters
+                   , struct kmeans_result **res
                    , struct csr_matrix **input_dataset) {
 
 
     uint32_t num_clusters;                   // the value of k
 
     *prms = NULL;
-    *clusters = NULL;
+    *res = NULL;
     *input_dataset = NULL;
-
-    // check value of k
-    if (mxGetScalar(k) < 1 || mxGetScalar(k) > UINT32_MAX) {
-        LOG_ERROR("Wrong input. Number of clusters should be at least 1 and < 2^32 - 1.");
-        goto fcl_kmeans_fit_error;
-    }
-
-    num_clusters = mxGetScalar(k);
 
     *prms = (struct kmeans_params*) calloc(1, sizeof(struct kmeans_params));
 
     initialize_random_generator();
 
     // create struct with default parameters;
-    (*prms)->kmeans_algorithm_id = ALGORITHM_KMEANS_OPTIMIZED;
-    (*prms)->no_clusters = num_clusters;
+    (*prms)->kmeans_algorithm_id = ALGORITHM_BV_KMEANS;
     (*prms)->seed = rand() % ((uint32_t) -1);
     (*prms)->iteration_limit = 1000;
     (*prms)->tol = 1e-6;
@@ -45,6 +36,7 @@ uint32_t fcl_kmeans_fit(const mxArray* input_data
     (*prms)->remove_empty=0;
     (*prms)->stop=0;
     (*prms)->tr=NULL;
+    (*prms)->initprms=NULL;
 
     // read optional input parameters if available
     if (opts == NULL) {
@@ -54,6 +46,16 @@ uint32_t fcl_kmeans_fit(const mxArray* input_data
     } else {
         int successful = read_optional_params(*prms, opts);
         if (!successful) goto fcl_kmeans_fit_error;
+    }
+
+    if ((*prms)->initprms == NULL)  {
+        // check value of k
+        if (mxGetScalar(k) < 1 || mxGetScalar(k) > UINT32_MAX) {
+            LOG_ERROR("Wrong input. Number of clusters should be at least 1 and < 2^32 - 1.");
+            goto fcl_kmeans_fit_error;
+        }
+        num_clusters = mxGetScalar(k);
+        (*prms)->no_clusters = num_clusters;
     }
 
 #ifdef DEBUG
@@ -83,7 +85,7 @@ uint32_t fcl_kmeans_fit(const mxArray* input_data
 #endif
 
     // run algorithm
-    *clusters = KMEANS_ALGORITHM_FUNCTIONS[(*prms)->kmeans_algorithm_id](*input_dataset, *prms);
+    *res = KMEANS_ALGORITHM_FUNCTIONS[(*prms)->kmeans_algorithm_id](*input_dataset, *prms);
 
     return 1;
 
@@ -98,9 +100,9 @@ fcl_kmeans_fit_error:
         free_null(*input_dataset);
     }
 
-    if (*clusters) {
-        free_csr_matrix(*clusters);
-        free_null(*clusters);
+    if (*res) {
+        free_kmeans_result(*res);
+        *res = NULL;
     }
     return 0;
 }

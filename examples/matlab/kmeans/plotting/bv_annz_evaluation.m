@@ -10,7 +10,7 @@ function do_bv_annz_evaluation(datasets)
     opts.silent = true;
     opts.no_cores = 1;
     opts.seed = 0;
-    opts.algorithm = 'kmeans_optimized';
+    opts.algorithm = 'bv_kmeans';
     
     bv_annz_values = linspace(1, 100, 10) / 100.0;
     

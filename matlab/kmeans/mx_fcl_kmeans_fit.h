@@ -13,7 +13,7 @@ uint32_t fcl_kmeans_fit(const mxArray* input_data
                    , const  mxArray* k
                    , const  mxArray* opts
                    , struct kmeans_params** prms
-                   , struct csr_matrix **clusters
+                   , struct kmeans_result **res
                    , struct csr_matrix **input_dataset);
 
 #endif

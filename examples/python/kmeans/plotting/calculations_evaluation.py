@@ -67,7 +67,7 @@ def plot_iteration_duration_subplot(ax, algorithm_results):
 
 def do_evaluations(dataset_path): 
   print("Doing evaluations for dataset %s"%dataset_path)
-  algorithm_results = {'kmeans_optimized': None, 'yinyang': None}
+  algorithm_results = {'bv_kmeans': None, 'yinyang': None}
   
   for algorithm in algorithm_results:
     print("Executing k-means with algorithm: %s"%algorithm)

@@ -6,7 +6,7 @@ function calculation_evaluation()
     opts.no_cores = 1;
     opts.seed = 0;
     
-    algorithms = {'kmeans_optimized', 'yinyang'};
+    algorithms = {'bv_kmeans', 'yinyang'};
     results = struct();
     for k=1:length(algorithms)
         opts.algorithm = algorithms{k};

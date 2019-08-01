@@ -11,11 +11,13 @@
  * @param[out] clusters The output matrix consisting of random samples from mtrx.
  * @param[in] no_clusters length of clusters array.
  * @param[in] seed The seed used for the random number generator.
+ * @param[out] chosen_elements The elements that were chosen from mtrx to serve as cluster centers.
  */
 void create_vector_list_random(struct csr_matrix *mtrx
                                  , struct sparse_vector* clusters
                                  , uint64_t no_clusters
-                                 , unsigned int *seed);
+                                 , uint32_t *seed
+                                 , uint64_t *chosen_elements);
 
 /**
  * @brief Transform from matrix mtrx the vector vector_id to a block vector.

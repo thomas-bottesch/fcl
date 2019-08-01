@@ -10,6 +10,6 @@
  * @param prms are the parameters to control the clustering
  * @return
  */
-struct csr_matrix* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_params *prms);
+struct kmeans_result* yinyang_kmeans(struct csr_matrix* samples, struct kmeans_params *prms);
 
 #endif

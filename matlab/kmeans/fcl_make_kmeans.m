@@ -72,6 +72,7 @@ function [ general_files ] = get_utilities_full_path_c_files(utilities_folder, a
         general_files = [ general_files fullfile(utilities_folder, 'fcl_random.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_string.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_time.c') ];
+        general_files = [ general_files fullfile(utilities_folder, 'jsmn.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_logging.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'clogging.c') ];
         
@@ -99,6 +100,7 @@ function [ general_files ] = get_utilities_full_path_c_files(utilities_folder, a
         general_files = [ general_files fullfile(utilities_folder, 'fcl_random.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_string.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_time.c') ];
+        general_files = [ general_files fullfile(utilities_folder, 'jsmn.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_logging.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'clogging.c') ];
         
@@ -125,6 +127,7 @@ function [ general_files ] = get_utilities_full_path_c_files(utilities_folder, a
         general_files = [ general_files fullfile(utilities_folder, 'fcl_random.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_string.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_time.c') ];
+        general_files = [ general_files fullfile(utilities_folder, 'jsmn.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'fcl_logging.c') ];
         general_files = [ general_files fullfile(utilities_folder, 'clogging.c') ];
         

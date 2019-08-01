@@ -13,7 +13,7 @@ if __name__ == "__main__":
         + '1 1:0.21 2:0.97\n' )
     
     # this example shows how to use tracking parameters
-    km = kmeans.KMeans(algorithm = 'kmeans_optimized',
+    km = kmeans.KMeans(algorithm = 'bv_kmeans',
                        init = 'kmeans++',
                        no_clusters = 2,
                        seed = 0)
