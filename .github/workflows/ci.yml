@@ -46,7 +46,7 @@ jobs:
       - name: Upgrade pip and install Python requirements
         if: contains(matrix.env, 'INSTALL_PYTHON_REQUIREMENTS=yes')
         run: |
-          pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           pip uninstall numpy -y || true
           # Install the requirements one-by-one (as in your install.sh)
           xargs -n 1 -L 1 pip install < python/requirements_examples.txt
