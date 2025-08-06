@@ -16,12 +16,10 @@ jobs:
       matrix:
         include:
           # Each matrix entry simulates one Travis job.
-          - python-version: '2.7'
+          - python-version: '3.12'
             env: INSTALL_OCTAVE=yes
-          - python-version: '2.7'
+          - python-version: '3.12'
             env: MAKE_CLI=yes
-          - python-version: '2.7'
-            env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
           - python-version: '3.9'
             env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
           - python-version: '3.10'
@@ -86,10 +84,10 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-      - name: Set up Python 2.7 for deploy
+      - name: Set up Python 3.12 for deploy
         uses: actions/setup-python@v4
         with:
-          python-version: '2.7'
+          python-version: '3.12'
 
       - name: Install deploy dependencies
         run: |
