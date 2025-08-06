@@ -17,8 +17,6 @@ jobs:
         include:
           # Each matrix entry simulates one Travis job.
           - python-version: '3.12'
-            env: INSTALL_OCTAVE=yes
-          - python-version: '3.12'
             env: MAKE_CLI=yes
           - python-version: '3.9'
             env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
@@ -40,12 +38,6 @@ jobs:
       - name: Update apt and install system packages
         run: |
           sudo apt-get update
-          # If the environment requires Octave, add its PPA and install Octave and dev packages.
-          if [[ "${{ matrix.env }}" == *"INSTALL_OCTAVE=yes"* ]]; then
-             sudo add-apt-repository ppa:ubuntuhandbook1/octave
-             sudo apt-get update -qq
-             sudo apt-get install -qq -y octave liboctave-dev
-          fi
           # For Python requirements (e.g. for matplotlib support)
           if [[ "${{ matrix.env }}" == *"INSTALL_PYTHON_REQUIREMENTS=yes"* ]]; then
              sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev
@@ -65,7 +57,6 @@ jobs:
 
       - name: Run tests and examples
         env:
-          INSTALL_OCTAVE: ${{ contains(matrix.env, 'INSTALL_OCTAVE=yes') && 'yes' || '' }}
           MAKE_CLI: ${{ contains(matrix.env, 'MAKE_CLI=yes') && 'yes' || '' }}
           # When using INSTALL_PYTHON_REQUIREMENTS, pass 'yes' together with MPLBACKEND
           INSTALL_PYTHON_REQUIREMENTS: ${{ contains(matrix.env, 'INSTALL_PYTHON_REQUIREMENTS=yes') && 'yes' || '' }}
