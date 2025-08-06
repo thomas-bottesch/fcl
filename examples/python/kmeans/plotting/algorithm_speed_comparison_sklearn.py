@@ -56,7 +56,7 @@ def do_evaluations(dataset_path, dataset_name):
       if not algorithm_name in algorithm_results:
         algorithm_results[algorithm_name] = {}
       print("evaluating: fcl kmeans (%s) with k=%d and dataset %s"%(algorithm, no_clusters, dataset_name))
-      dur = timeit(kmeans.KMeans(n_jobs=1, no_clusters=no_clusters, algorithm=algorithm, init='random', seed = 1, verbose = False)
+      dur = timeit(kmeans.KMeans(no_clusters=no_clusters, algorithm=algorithm, init='random', seed = 1, verbose = False)
              , data_as_csrmatrix)
       algorithm_results[algorithm_name][no_clusters] = dur
     
@@ -66,7 +66,7 @@ def do_evaluations(dataset_path, dataset_name):
     
     # Evaluating the speed of scikit-learn when clustering a sparse matrix
     print("evaluating: sklearn kmeans (sparse matrix) with k=%d and dataset %s"%(no_clusters, dataset_name))
-    dur = timeit(sklearn.cluster.KMeans(n_init = 1, n_jobs=1, n_clusters=no_clusters, algorithm='full', init='random', random_state=1)
+    dur = timeit(sklearn.cluster.KMeans(n_init = 1, n_clusters=no_clusters, algorithm='lloyd', init='random', random_state=1)
                , data_as_numpy)
     algorithm_results[algorithm_name][no_clusters] = dur
     
@@ -91,8 +91,9 @@ def plot_sklearn_comparison(algorithm_results, dataset_name):
   algorithm_xvalues = {}
   algorithm_yvalues = {}
   algorithm_legend_data = {}
+  colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
   for i in range(len(sorted_algorithms)):
-    algo_color = next(ax._get_lines.prop_cycler)['color']
+    algo_color = colors[i % len(colors)]
     algo_name = sorted_algorithms[i]
     algorithm_legend_data[i] = (algo_color, algo_name)
     algorithm_xvalues[i] = []

@@ -85,8 +85,9 @@ def plot_overall_duration(algorithm_results, dataset_name):
   algorithm_xvalues = {}
   algorithm_yvalues = {}
   algorithm_legend_data = {}
+  colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
   for i in range(len(sorted_algorithms)):
-    algo_color = next(ax._get_lines.prop_cycler)['color']
+    algo_color = colors[i % len(colors)]
     algo_name = sorted_algorithms[i]
     algorithm_legend_data[i] = (algo_color, algo_name)
     algorithm_xvalues[i] = []
