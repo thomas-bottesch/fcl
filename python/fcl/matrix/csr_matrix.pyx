@@ -29,7 +29,7 @@ cdef class _csr_matrix:
     for i in xrange(self.mtrx.sample_count + 1):
       pointers[i] = self.mtrx.pointers[i]
     
-    return scipy.sparse.csr.csr_matrix((values, keys, pointers), shape=self.shape, copy=False)
+    return scipy.sparse.csr_matrix((values, keys, pointers), shape=self.shape, copy=False)
     
   def __getitem__(self, i):
     if type(i) != int:
@@ -88,9 +88,9 @@ cdef _csr_matrix convert_matrix_to_csr_matrix(obj, uint32_t* is_numpy):
     
     if imp_success:
       if type(obj) == np.ndarray:
-        obj = scipy.sparse.csr.csr_matrix(obj)
+        obj = scipy.sparse.csr_matrix(obj)
       
-      if type(obj) == scipy.sparse.csr.csr_matrix:
+      if type(obj) == scipy.sparse.csr_matrix:
         keys_array = obj.indices
         values_array = obj.data
         pointer_array = obj.indptr

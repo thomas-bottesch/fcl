@@ -84,7 +84,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev
-          pip install --upgrade pip
+          pip install --upgrade pip setuptools wheel
           xargs -n 1 -L 1 pip install < python/requirements_examples.txt
 
       - name: Build source distribution
