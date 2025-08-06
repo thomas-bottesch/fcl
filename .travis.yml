@@ -30,7 +30,7 @@ matrix:
     env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
   - os: linux
     dist: trusty
-    python: '3.11'
+    python: '3.12'
     env: INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg
     
 install:

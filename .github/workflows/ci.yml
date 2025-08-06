@@ -1,0 +1,110 @@
+name: CI & Deploy
+
+on:
+  push:
+    branches: [master]
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'  # adjust tag pattern as needed
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    name: Test Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # Each matrix entry simulates one Travis job.
+          - python-version: '2.7'
+            env: INSTALL_OCTAVE=yes
+          - python-version: '2.7'
+            env: MAKE_CLI=yes
+          - python-version: '2.7'
+            env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
+          - python-version: '3.9'
+            env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
+          - python-version: '3.10'
+            env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
+          - python-version: '3.11'
+            env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
+          - python-version: '3.12'
+            env: "INSTALL_PYTHON_REQUIREMENTS=yes MPLBACKEND=agg"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Update apt and install system packages
+        run: |
+          sudo apt-get update
+          # If the environment requires Octave, add its PPA and install Octave and dev packages.
+          if [[ "${{ matrix.env }}" == *"INSTALL_OCTAVE=yes"* ]]; then
+             sudo apt-add-repository -y ppa:octave/stable
+             sudo apt-get update -qq
+             sudo apt-get install -qq -y octave liboctave-dev
+          fi
+          # For Python requirements (e.g. for matplotlib support)
+          if [[ "${{ matrix.env }}" == *"INSTALL_PYTHON_REQUIREMENTS=yes"* ]]; then
+             sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev
+          fi
+
+      - name: Upgrade pip and install Python requirements
+        if: contains(matrix.env, 'INSTALL_PYTHON_REQUIREMENTS=yes')
+        run: |
+          pip install --upgrade pip
+          pip uninstall numpy -y || true
+          # Install the requirements one-by-one (as in your install.sh)
+          xargs -n 1 -L 1 pip install < python/requirements_examples.txt
+
+      - name: Build CLI if needed
+        if: contains(matrix.env, 'MAKE_CLI=yes')
+        run: make
+
+      - name: Run tests and examples
+        env:
+          INSTALL_OCTAVE: ${{ contains(matrix.env, 'INSTALL_OCTAVE=yes') && 'yes' || '' }}
+          MAKE_CLI: ${{ contains(matrix.env, 'MAKE_CLI=yes') && 'yes' || '' }}
+          # When using INSTALL_PYTHON_REQUIREMENTS, pass 'yes' together with MPLBACKEND
+          INSTALL_PYTHON_REQUIREMENTS: ${{ contains(matrix.env, 'INSTALL_PYTHON_REQUIREMENTS=yes') && 'yes' || '' }}
+          MPLBACKEND: ${{ contains(matrix.env, 'MPLBACKEND=agg') && 'agg' || '' }}
+        run: |
+          # Run the test script as in ci/run.sh
+          chmod +x ./tools_build/ci/run.sh
+          ./tools_build/ci/run.sh
+
+  deploy:
+    name: Deploy to PyPI
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python 2.7 for deploy
+        uses: actions/setup-python@v4
+        with:
+          python-version: '2.7'
+
+      - name: Install deploy dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qq -y libpng-dev libfreetype6-dev libxft-dev
+          pip install --upgrade pip
+          xargs -n 1 -L 1 pip install < python/requirements_examples.txt
+
+      - name: Build source distribution
+        run: python setup.py sdist
+
+      - name: Publish package to PyPI
+        env:
+          TWINE_USERNAME: "__token__"
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          pip install twine
+          twine upload dist/* --verbose
