@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "Cython>=0.24.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fcl"
+description = "fcl machine learning library"
+license = { text = "MIT" }
+maintainers = [{ name = "Thomas Bottesch", email = "thomas.bottesch@uni-ulm.de" }]
+# Pull version from your module:
+dynamic = ["version"]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved",
+  "Programming Language :: C",
+  "Programming Language :: Python",
+  "Programming Language :: Cython",
+  "Topic :: Software Development",
+  "Topic :: Scientific/Engineering",
+  "Operating System :: POSIX",
+  "Operating System :: Unix",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 2",
+  "Programming Language :: Python :: 2.7",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.4",
+  "Programming Language :: Python :: 3.5",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12"
+]
+
+[project.urls]
+Homepage = "https://github.com/thomas-bottesch/fcl"
+Source = "https://github.com/thomas-bottesch/fcl"
+Download = "https://github.com/thomas-bottesch/fcl/archive/refs/heads/master.zip"
+
+[tool.setuptools.dynamic]
+version = { attr = "fcl.__version__" }
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"" = "python"
+
+[tool.setuptools.packages.find]
+where = ["python"]
