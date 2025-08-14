@@ -5,7 +5,7 @@ set -e                         # Exit immediately if a command exits with a non-
 set -x                         # Print commands and their arguments as they are executed.
 
 if [ "x$INSTALL_PYTHON_REQUIREMENTS" = "xyes" ]; then
-    python setup.py install
+    pip install .
     
     # make sure the python examples work
     for BASE_FOLDER in examples/python/kmeans/basic/ examples/python/kmeans/plotting/
